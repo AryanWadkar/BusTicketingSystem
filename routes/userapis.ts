@@ -35,6 +35,7 @@ async (req: Request,res: Response)=>{
     }
 
 }catch(e){
+        console.log(e);
         res.status(400).json({
             "status":false,
             "message":e,
@@ -61,6 +62,7 @@ async (req: Request,res: Response)=>{
     await globalservice.verifyOTP(res,unhashedOTP,"registration",emailID,onsuccess);
 
 }catch(e){
+    console.log(e);
         res.status(400).json({
             "status":false,
             "message":e,
@@ -148,6 +150,7 @@ async (req: Request,res: Response)=>{
             }
         
         }catch(e){
+            console.log(e);
                 res.status(400).json({
                     "status":false,
                     "message":e,
@@ -228,6 +231,7 @@ async (req: Request,res: Response)=>{
     }
 
 }catch(e){
+    console.log(e);
         res.status(400).json({
             "status":false,
             "message":e,
@@ -257,6 +261,7 @@ router.post("/resetPassSendOTP",async(req:Request,res:Response)=>{
     }
 
 }catch(e){
+    console.log(e);
         res.status(400).json({
             "status":false,
             "message":e,
@@ -273,6 +278,7 @@ router.post("/resetPassVerifyOTP",async(req:Request,res:Response)=>{
         await globalservice.verifyOTP(res,unhashedOTP,'reset',emailID)
     
     }catch(e){
+        console.log(e);
             res.status(500).json({
                 "status":false,
                 "message":"Unkown Error",
@@ -320,6 +326,7 @@ router.post("/resetPassword",async(req:Request,res:Response)=>{
             }
         
         }catch(e){
+            console.log(e);
                 res.status(400).json({
                     "status":false,
                     "message":e,
