@@ -170,12 +170,11 @@ router.post("/loginUser", async (req, res) => {
                     "rollno": rollno
                 };
                 jwt.sign(payload, process.env.JWT_KEY, async (err, tokenx) => {
-                    Usermodel.updateOne({
+                    await Usermodel.updateOne({
                         email: email,
                         regstatus: false
                     }, {
                         $set: {
-                            token: tokenx,
                             logstatus: true
                         }
                     });

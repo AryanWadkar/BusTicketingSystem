@@ -201,12 +201,11 @@ async (req: Request,res: Response)=>{
                 payload,
                 process.env.JWT_KEY,
                 async (err, tokenx) => {
-                    Usermodel.updateOne({
+                    await Usermodel.updateOne({
                         email:email,
                         regstatus:false
                     },{
                         $set:{
-                            token:tokenx,
                             logstatus:true
                         }
                     });
