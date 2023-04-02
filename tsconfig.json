@@ -3,6 +3,7 @@
     "target": "es2021",
     "module": "commonjs",
     "sourceMap": true,
+    "outDir": "build"
     //"forceConsistentCasingInFileNames": true,           
     //"strict": true,                                      
     //"skipLibCheck": true                                 

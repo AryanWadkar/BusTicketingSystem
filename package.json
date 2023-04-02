@@ -2,11 +2,11 @@
   "name": "buts",
   "version": "1.0.0",
   "description": "Node app for Bus Utility Ticketing System",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf ./build && tsc",
-    "start": "npm run build && node index.js"
+    "start": "npm run build && node ./build/index.js"
   },
   "author": "Aryan Wadkar",
   "license": "ISC",
