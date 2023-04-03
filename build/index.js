@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const cors = require("cors");
 const InitMongoServer = require("./config/db");
+const middleWare = require("./config/middleware");
 const app = express();
 const user = require("./routes/userapis");
 InitMongoServer();
@@ -15,6 +16,7 @@ app.get("/", (req, res) => {
     res.json({ message: "Buts server functional!" });
 });
 app.use("/user", user);
+app.use(middleWare.validationErrorMiddleware);
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

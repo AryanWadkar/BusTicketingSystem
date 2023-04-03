@@ -1,23 +1,21 @@
 import * as express from 'express';
 import { Response,Request } from 'express';
-import * as nodemailer from 'nodemailer';
+import { Validator} from "express-json-validator-middleware";
 require('dotenv').config();
-const { check, validationResult} = require("express-validator");
+const validJson = require("../config/schema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
-
 const Usermodel = require("../models/user");
-const OTPmodel = require("../models/otp")
 const globalservice = require('../services/global_services');
 
+const { validate } = new Validator({});
 
-
-router.post("/usercheck",    
+router.post("/usercheck", validate({ body: validJson.usernameSchema }),   
 async (req: Request,res: Response)=>{
     try{    
     let username:string=req.body["username"];
-    let useremail:string = untoemail(username);
+    let useremail:string = globalservice.username_to_email(username);
     let user = await Usermodel.findOne({
         email:useremail,
         regstatus:true
@@ -45,13 +43,13 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/verifyOTP",    
+router.post("/verifyOTP",  validate({ body: validJson.username_opt_Schema }),  
 async (req: Request,res: Response)=>{
 
     try{    
     let username:string=req.body["username"];
     let unhashedOTP:string = req.body["otp"];
-    let emailID = untoemail(username);
+    let emailID = globalservice.username_to_email(username);
     let onsuccess= async ()=>{
         let newuser = new Usermodel({
             email:emailID,
@@ -72,7 +70,7 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/registerUser",    
+router.post("/registerUser",  validate({ body: validJson.registrationSchema }),   
 async (req: Request,res: Response)=>{
     let data:object = await globalservice.jwtVerifyx(req,res,"registration");
     if(data)
@@ -81,7 +79,7 @@ async (req: Request,res: Response)=>{
             let name:string=req.body["name"];
             let pass:string = req.body["password"];
             let rollno:string = req.body["rollno"];
-            let email:String = data['email'];
+            let email:String = data["email"];
             const user = await Usermodel.findOne({
                 email:email,
                 regstatus:false,
@@ -167,7 +165,7 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/loginUser",    
+router.post("/loginUser",  validate({ body: validJson.loginSchema }),  
 async (req: Request,res: Response)=>{
     try{    
     let pass:string = req.body["password"];
@@ -201,6 +199,16 @@ async (req: Request,res: Response)=>{
                 payload,
                 process.env.JWT_KEY,
                 async (err, tokenx) => {
+                    if(err)
+                    {
+                        res.status(500).json({
+                            "status":false,
+                            "message":"Error signing JWT",
+                            "data":err
+                        });
+                    }else{
+
+                    }
                     await Usermodel.updateOne({
                         email:email,
                         regstatus:false
@@ -208,17 +216,25 @@ async (req: Request,res: Response)=>{
                         $set:{
                             logstatus:true
                         }
+                    }).then((data)=>{
+                        res.status(200).json({
+                            "status":true,
+                            "message":"Logged in Successfully",
+                            "data":{
+                                "name":name,
+                                "rollno":rollno,
+                                "email":email,
+                                "token":tokenx,
+                            }
+                        });
+                    }).catch((err)=>{
+                        res.status(500).json({
+                            "status":false,
+                            "message":"Error saving to DB",
+                            "data":err
+                        });
                     });
-                    res.status(200).json({
-                        "status":true,
-                        "message":"Logged in Successfully",
-                        "data":{
-                            "name":name,
-                            "rollno":rollno,
-                            "email":email,
-                            "token":tokenx,
-                        }
-                    });
+
                 }
             );
         }else{
@@ -240,9 +256,9 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/resetPassSendOTP",async(req:Request,res:Response)=>{
+router.post("/resetPassSendOTP",validate({ body: validJson.usernameSchema }),async(req:Request,res:Response)=>{
     try{    
-    let username:string=untoemail(req.body["username"]);
+    let username:string=globalservice.username_to_email(req.body["username"]);
     let user = await Usermodel.findOne({
         email:username,
         regstatus:true
@@ -268,12 +284,12 @@ router.post("/resetPassSendOTP",async(req:Request,res:Response)=>{
     }
 });
 
-router.post("/resetPassVerifyOTP",async(req:Request,res:Response)=>{
+router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema }),async(req:Request,res:Response)=>{
 
     try{    
         let username:string=req.body["username"];
         let unhashedOTP:string = req.body["otp"];
-        let emailID = untoemail(username);
+        let emailID = globalservice.username_to_email(username);
         await globalservice.verifyOTP(res,unhashedOTP,'reset',emailID)
     
     }catch(e){
@@ -285,7 +301,7 @@ router.post("/resetPassVerifyOTP",async(req:Request,res:Response)=>{
         }
 });
 
-router.post("/resetPassword",async(req:Request,res:Response)=>{
+router.post("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
     let data = await globalservice.jwtVerifyx(req,res,'reset');
     if(data)
     {
@@ -342,11 +358,6 @@ router.post("/resetPassword",async(req:Request,res:Response)=>{
 });
 
 
-function untoemail(inval:string){
-    inval=inval.toLowerCase();
-    inval = inval.replaceAll(".","");
-    inval += "@iiitdmj.ac.in";
-    return inval;
-}
+
 
 module.exports = router;

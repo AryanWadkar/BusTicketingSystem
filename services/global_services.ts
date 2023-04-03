@@ -41,11 +41,8 @@ const sendOTPMail= async (type:String,tosend:String,res:Response) => {
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          type: 'OAuth2',
           user: process.env.SMTP_MAIL,
-          clientId: process.env.SMTP_CID,
-          clientSecret: process.env.SMTP_SECRET,
-          refreshToken: process.env.SMTP_REFRESH
+          pass:process.env.SMTP_APP_PASS
         }
    });
 
@@ -186,9 +183,16 @@ const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:St
     });
 }
 
+function username_to_email(inval:string){
+    inval=inval.toLowerCase();
+    inval = inval.replaceAll(".","");
+    inval += "@iiitdmj.ac.in";
+    return inval;
+}
 
 module.exports = {
     jwtVerifyx,
     sendOTPMail,
-    verifyOTP
+    verifyOTP,
+    username_to_email
 }
