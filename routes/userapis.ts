@@ -119,7 +119,6 @@ async (req: Request,res: Response)=>{
                                     regstatus:true,
                                     name:name,
                                     rollno:rollno,
-                                    logstatus:true,
                                     password:hashpass
                                 }
                             }).then((data)=>{
@@ -207,16 +206,6 @@ async (req: Request,res: Response)=>{
                             "data":err
                         });
                     }else{
-
-                    }
-                    await Usermodel.updateOne({
-                        email:email,
-                        regstatus:false
-                    },{
-                        $set:{
-                            logstatus:true
-                        }
-                    }).then((data)=>{
                         res.status(200).json({
                             "status":true,
                             "message":"Logged in Successfully",
@@ -224,16 +213,9 @@ async (req: Request,res: Response)=>{
                                 "name":name,
                                 "rollno":rollno,
                                 "email":email,
-                                "token":tokenx,
-                            }
-                        });
-                    }).catch((err)=>{
-                        res.status(500).json({
-                            "status":false,
-                            "message":"Error saving to DB",
-                            "data":err
-                        });
-                    });
+                                "token":tokenx
+                            }});
+                    }
 
                 }
             );
@@ -301,7 +283,7 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
         }
 });
 
-router.post("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
+router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
     let data = await globalservice.jwtVerifyx(req,res,'reset');
     if(data)
     {

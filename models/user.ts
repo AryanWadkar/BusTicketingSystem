@@ -14,9 +14,6 @@ const UserSchema = mongoose.Schema({
   rollno:{
     type:String
   },
-  logstatus:{
-    type:Boolean
-  },
   regstatus:{
     type:Boolean,
     required:true
