@@ -4,7 +4,8 @@ import { Request, Response } from 'express';
 const bcrypt = require("bcryptjs");
 import * as nodemailer from 'nodemailer';
 const OTPmodel = require("../models/otp")
-
+import { Socket } from "socket.io";
+const userservice = require('./user_services');
 
 async function jwtVerifyx(req:Request,res:Response,purpose:String):Promise<object | null>{
     const authHeader = req.headers.authorization;
@@ -118,9 +119,9 @@ const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:St
     await OTPmodel.find({
         email:emailID
     }).then(async (data)=>{
-        const expiry = data[0].expiresAt;
-        const hashedotp = data[0].otp;
-        console.log(hashedotp);
+        const expiry = data[data.length-1].expiresAt;
+        const hashedotp = data[data.length-1].otp;
+        console.log(expiry.type);
         if(expiry < Date.now())
         {
             await OTPmodel.collection.deleteMany({email:emailID});
@@ -130,7 +131,6 @@ const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:St
             });
         }else{
             const validity = await bcrypt.compareSync(unhashedOTP,hashedotp);
-            console.log(validity);
             if(validity)
             {
                 await OTPmodel.deleteMany({email:emailID});
@@ -152,7 +152,6 @@ const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:St
                                 }
                             );
                         }else{
-                            console.log(onsuccess);
                             if(onsuccess)
                             {
                                 await onsuccess();
@@ -178,7 +177,7 @@ const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:St
         res.status(404).json({
             "status":false,
             "message":"No corresponding OTP found, please request again!",
-            "data":error
+            "data":String(error)
         });
     });
 }
@@ -190,9 +189,64 @@ function username_to_email(inval:string){
     return inval;
 }
 
+async function verifySocket(socket: Socket,next,send:boolean){
+    console.log('verifying');
+    send = typeof send !== "undefined" ? send : true;
+    const authkey:string = socket.client.request.headers.authorization;
+    try{
+        const data = jwt.verify(authkey,process.env.JWT_KEY);
+        if(data)
+        {
+          console.log('Valid user!!');
+          const validtoken = await userservice.verifyLoginx(data);
+          if(validtoken)
+          {
+            console.log('Validated!');
+            if(send)
+            {
+                socket.emit('Connection_Success',{
+                    'status':true,
+                    'message':'Connected!'
+                  });
+            }
+          }else{
+            socket.emit('Connection_Error',{
+                'status':false,
+                'message':'Expired Token!',
+              });
+              socket.disconnect();
+          }
+        }else{
+          console.log('Invalid user!');
+          socket.emit('Connection_Error',{
+            'status':false,
+            'message':'Invalid token!',
+          });
+          socket.disconnect();
+        }
+    }catch(err)
+    {
+          console.log('Validation Error!');
+          socket.emit('Connection_Error',{
+            'status':false,
+            'message':'Token not found',
+            'data':String(err)
+          });
+          socket.disconnect();
+    }
+    if(next!=undefined)
+    {
+        next();
+    }
+
+}
+
+
+
 module.exports = {
     jwtVerifyx,
     sendOTPMail,
     verifyOTP,
-    username_to_email
+    username_to_email,
+    verifySocket
 }

@@ -14,6 +14,11 @@ const UserSchema = mongoose.Schema({
   rollno:{
     type:String
   },
+  logintime:{
+    type:Date,
+    default:Date.now(),
+    required:true
+  },
   regstatus:{
     type:Boolean,
     required:true

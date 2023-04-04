@@ -42,9 +42,9 @@ const username_opt_Schema: AllowedSchema  = {
 
   const loginSchema: AllowedSchema  = {
     type: "object",
-    required: ["name","password"],
+    required: ["email","password"],
     properties: {
-      username: {
+      email: {
         type: "string",
       },
       password:{

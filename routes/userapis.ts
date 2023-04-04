@@ -36,7 +36,7 @@ async (req: Request,res: Response)=>{
         console.log(e);
         res.status(400).json({
             "status":false,
-            "message":e,
+            "message":String(e),
         });
     }
 
@@ -63,7 +63,7 @@ async (req: Request,res: Response)=>{
     console.log(e);
         res.status(400).json({
             "status":false,
-            "message":e,
+            "message":String(e),
         });
     }
 
@@ -93,11 +93,13 @@ async (req: Request,res: Response)=>{
             }else{
                 const saltrounds=10;
                 const hashpass = await bcrypt.hashSync(pass,saltrounds);
+                const date = Date.now();
                 const payload = {
                     "email":email,
                     "purpose":"ops",
                     "name":name,
-                    "rollno":rollno
+                    "rollno":rollno,
+                    "lat":date
                 };
         
                 jwt.sign(
@@ -108,7 +110,7 @@ async (req: Request,res: Response)=>{
                             res.status(500).json({
                                 "status":false,
                                 "message":"Error generating JWT",
-                                "data":err
+                                "data":String(err)
                             });
                         }else{
                             await Usermodel.updateOne({
@@ -119,7 +121,8 @@ async (req: Request,res: Response)=>{
                                     regstatus:true,
                                     name:name,
                                     rollno:rollno,
-                                    password:hashpass
+                                    password:hashpass,
+                                    logintime:date
                                 }
                             }).then((data)=>{
                                 res.status(200).json({
@@ -137,7 +140,7 @@ async (req: Request,res: Response)=>{
                                 res.status(500).json({
                                     "status":false,
                                     "message":"Error registering, please retry!",
-                                    "data":err
+                                    "data":String(err)
                                 });
                             });
                         }
@@ -150,7 +153,7 @@ async (req: Request,res: Response)=>{
             console.log(e);
                 res.status(400).json({
                     "status":false,
-                    "message":e,
+                    "message":String(e),
                 });
             }
     }else{
@@ -187,11 +190,13 @@ async (req: Request,res: Response)=>{
         {
             const rollno=user.rollno;
             const name = user.name;
+            const date = Date.now();
             const payload = {
                 "email":email,
                 "purpose":"ops",
                 "name":name,
-                "rollno":rollno
+                "rollno":rollno,
+                "lat":date
             };
     
             jwt.sign(
@@ -203,18 +208,34 @@ async (req: Request,res: Response)=>{
                         res.status(500).json({
                             "status":false,
                             "message":"Error signing JWT",
-                            "data":err
+                            "data":String(err)
                         });
                     }else{
-                        res.status(200).json({
-                            "status":true,
-                            "message":"Logged in Successfully",
-                            "data":{
-                                "name":name,
-                                "rollno":rollno,
-                                "email":email,
-                                "token":tokenx
-                            }});
+                        await Usermodel.updateOne({
+                            email:email,
+                        },{
+                            $set:{
+                                logintime:date,
+                            }
+                        }
+                        ).then((data)=>{
+                            res.status(200).json({
+                                "status":true,
+                                "message":"Logged in Successfully",
+                                "data":{
+                                    "name":name,
+                                    "rollno":rollno,
+                                    "email":email,
+                                    "token":tokenx
+                                }});
+                        }).catch((error)=>{
+                            res.status(500).json({
+                                "status":false,
+                                "message":"Error logging in!",
+                                "data":String(error)
+                            });
+                        });
+
                     }
 
                 }
@@ -231,7 +252,7 @@ async (req: Request,res: Response)=>{
     console.log(e);
         res.status(400).json({
             "status":false,
-            "message":e,
+            "message":String(e),
         });
     }
 
@@ -261,7 +282,7 @@ router.post("/resetPassSendOTP",validate({ body: validJson.usernameSchema }),asy
     console.log(e);
         res.status(400).json({
             "status":false,
-            "message":e,
+            "message":String(e),
         });
     }
 });
@@ -279,6 +300,7 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
             res.status(500).json({
                 "status":false,
                 "message":"Unkown Error",
+                'data':String(e)
             });
         }
 });
@@ -317,7 +339,8 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
                 }).catch((error)=>{
                     res.status(500).json({
                         "status":false,
-                        "message":"Error resetting password!"
+                        "message":"Error resetting password!",
+                        "data":String(error)
                     });
                 });
             }
@@ -326,7 +349,8 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
             console.log(e);
                 res.status(400).json({
                     "status":false,
-                    "message":e,
+                    "message":"Invalid request",
+                    'data':String(e)
                 });
             }
     }else{
