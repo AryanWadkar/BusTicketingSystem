@@ -63,10 +63,8 @@ function bookTicket(socket,io){
     socket.on('post/book',async(datain)=>{
         //Validate jwt
         try{
-            console.log(datain);
             const session = await mongoose.startSession();
             session.startTransaction();
-            console.log('session started');
             const authkey:string = socket.client.request.headers.authorization;
             const data = jwt.verify(authkey,process.env.JWT_KEY);
             if(data)
@@ -79,7 +77,7 @@ function bookTicket(socket,io){
                 const ticketex = await TicketModel.find({
                     user_email:email
                 });
-                console.log('ticket ex',ticketex);
+                //console.log('ticket ex',ticketex);
                 if(ticketex.length>0)
                 {
                     socket.emit('Booking_Error',{
@@ -95,7 +93,7 @@ function bookTicket(socket,io){
                           txnid:{ $eq: "" }
                         }
                       ).session(session); 
-                      console.log('ticket found',ticket);
+                      //console.log('ticket found',ticket);
                         if(!ticket)
                         {
                             socket.emit('Booking_Error',{
@@ -112,13 +110,15 @@ function bookTicket(socket,io){
                                     });
                                 }else{
                                     amt=amt-20;
-                                    console.log('amt',amt);
+                                    //console.log('amt',amt);
                                     const encamt = userservice.encryptAmount(amt);
                                     await Usermodel.updateOne(
                                         { email: email },
                                         { $set: { wallet: encamt } },
                                         { session }
                                       ).session(session);
+
+
                                       const transaction = new TransactionModel({
                                         amount: 20,
                                         user_email: email,
@@ -127,10 +127,10 @@ function bookTicket(socket,io){
                                       });
                                 
     
-                                      const transactionId= await transaction.save({session});
-                                      const ticketfinal = await TicketModel.updateOne(
+                                      const newtransaction= await transaction.save({session});
+                                      await TicketModel.updateOne(
                                         { _id: ticket._id },
-                                        { $set: { txnid: transactionId._id,user_email:email } },
+                                        { $set: { txnid: newtransaction._id,user_email:email } },
                                         { session }
                                       ).session(session);
                                       await session.commitTransaction();
