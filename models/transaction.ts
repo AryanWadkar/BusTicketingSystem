@@ -14,6 +14,10 @@ const Transaction = new mongoose.Schema({
     type:Date,
     required:true
   },
+  type:{
+    type:String,
+    required:true
+  }
 });
 
-module.exports = mongoose.model("busMaster", Transaction);
+module.exports = mongoose.model("Transaction", Transaction);

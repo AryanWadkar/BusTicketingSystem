@@ -26,6 +26,10 @@ const UserSchema = mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now()
+  },
+  wallet:{
+    type:String,
+    default:""
   }
 });
 

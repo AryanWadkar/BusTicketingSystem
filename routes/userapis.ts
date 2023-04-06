@@ -10,6 +10,8 @@ const Usermodel = require("../models/user");
 const globalservice = require('../services/global_services');
 
 const { validate } = new Validator({});
+const userservice = require('../services/user_services');
+
 
 router.post("/usercheck", validate({ body: validJson.usernameSchema }),   
 async (req: Request,res: Response)=>{
@@ -94,12 +96,14 @@ async (req: Request,res: Response)=>{
                 const saltrounds=10;
                 const hashpass = await bcrypt.hashSync(pass,saltrounds);
                 const date = Date.now();
+                const initWallet = userservice.encryptAmount(400);
                 const payload = {
                     "email":email,
                     "purpose":"ops",
                     "name":name,
                     "rollno":rollno,
-                    "lat":date
+                    "lat":date,
+                    "wallet":initWallet
                 };
         
                 jwt.sign(
@@ -113,6 +117,7 @@ async (req: Request,res: Response)=>{
                                 "data":String(err)
                             });
                         }else{
+
                             await Usermodel.updateOne({
                                 "email":email,
                                 "regstatus":false
@@ -122,7 +127,8 @@ async (req: Request,res: Response)=>{
                                     name:name,
                                     rollno:rollno,
                                     password:hashpass,
-                                    logintime:date
+                                    logintime:date,
+                                    wallet:initWallet
                                 }
                             }).then((data)=>{
                                 res.status(200).json({
@@ -133,6 +139,7 @@ async (req: Request,res: Response)=>{
                                         "rollno":rollno,
                                         "email":email,
                                         "token":tokenx,
+                                        "wallet":userservice.decryptAmount(initWallet)
                                     }
                                 });
             
@@ -191,12 +198,14 @@ async (req: Request,res: Response)=>{
             const rollno=user.rollno;
             const name = user.name;
             const date = Date.now();
+            const walletenc = user.wallet;
             const payload = {
                 "email":email,
                 "purpose":"ops",
                 "name":name,
                 "rollno":rollno,
-                "lat":date
+                "lat":date,
+                "wallet":walletenc
             };
     
             jwt.sign(
@@ -226,7 +235,8 @@ async (req: Request,res: Response)=>{
                                     "name":name,
                                     "rollno":rollno,
                                     "email":email,
-                                    "token":tokenx
+                                    "token":tokenx,
+                                    "wallet":userservice.decryptAmount(walletenc)
                                 }});
                         }).catch((error)=>{
                             res.status(500).json({
@@ -362,8 +372,5 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
 
 
 });
-
-
-
 
 module.exports = router;

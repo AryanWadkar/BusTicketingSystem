@@ -3,7 +3,7 @@ require('dotenv').config();
 import { Request, Response } from 'express';
 const bcrypt = require("bcryptjs");
 import * as nodemailer from 'nodemailer';
-const OTPmodel = require("../models/otp")
+const OTPmodel = require("../models/otp");
 import { Socket } from "socket.io";
 const userservice = require('./user_services');
 
@@ -240,6 +240,17 @@ async function verifySocket(socket: Socket,next,send:boolean){
     }
 
 }
+
+
+
+// const gethandm = (ticket)=>{
+//     const date = ticket.startTime;
+//     const formattedDate = date.toLocaleString('en-US', {timeZone:'Asia/Kolkata'});
+//     const dateObj = new Date(formattedDate);
+//     const hour = dateObj.getHours();
+//     const minute = dateObj.getMinutes();
+//     return {hour,minute};
+// }
 
 
 

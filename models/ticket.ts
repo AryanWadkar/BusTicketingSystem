@@ -16,12 +16,10 @@ const Ticket = new mongoose.Schema({
   },
   user_email: {
     type: String,
-    required: true
   },
   txnid:{
-    type:Number,
-    required:true
+    type:String,
   },
 });
 
-module.exports = mongoose.model("busMaster", Ticket);
+module.exports = mongoose.model("Ticket", Ticket);

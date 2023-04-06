@@ -11,6 +11,7 @@ const middleWare = require("./config/middleware");
 const user = require("./routes/userapis");
 const globalservices = require('./services/global_services');
 const bus = require('./routes/busapis');
+const dev = require('./routes/dev');
 //Initialization and vars
 InitMongoServer();
 
@@ -31,6 +32,8 @@ app.get("/", (req, res) => {
 
 app.use("/user", user);
 
+app.use("/dev", dev);
+
 app.use(middleWare.validationErrorMiddleware);
 
 const server = app.listen(PORT, () => {
@@ -40,8 +43,7 @@ console.log(`Server is running on port ${PORT}`);
 
 const io = new Server(server, { /* options */ });
 
-
-
 io.use(globalservices.verifySocket).on("connection", (socket)=>{
-  bus.busData(socket);
+  bus.busData(socket,io);
+  bus.bookTicket(socket,io);
 });

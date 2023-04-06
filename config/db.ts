@@ -5,7 +5,8 @@ require('dotenv').config();
 const InitiateMongoServer = async () => {
   try {
     await mongoose.connect(process.env.MONGOURI, {
-      useNewUrlParser: true
+      useNewUrlParser: true,
+      retryWrites: true,
     } as mongoose.ConnectOptions);
     console.log("Connected to DB !!");
   } catch (e) {
