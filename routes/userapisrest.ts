@@ -6,21 +6,20 @@ const validJson = require("../config/schema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
-const Usermodel = require("../models/user");
-const globalservice = require('../services/global_services');
-
+const userModel = require("../models/user");
+const globalService = require('../services/globalservices');
 const { validate } = new Validator({});
-const userservice = require('../services/user_services');
-
+const userService = require('../services/userservices');
+const cacheService = require('../services/cacheservices');
 
 router.post("/usercheck", validate({ body: validJson.usernameSchema }),   
 async (req: Request,res: Response)=>{
     try{    
     let username:string=req.body["username"];
-    let useremail:string = globalservice.username_to_email(username);
-    let user = await Usermodel.findOne({
+    let useremail:string = userService.usernameToEmail(username);
+    let user = await userModel.findOne({
         email:useremail,
-        regstatus:true
+        regStatus:true
     });
     if(user)
     {
@@ -30,8 +29,8 @@ async (req: Request,res: Response)=>{
             "email":useremail
         });
     }else{
-        await Usermodel.deleteMany({email:useremail});
-        await globalservice.sendOTPMail('verify',useremail,res);
+        await userModel.deleteMany({email:useremail});
+        await userService.sendOTPMail('verify',useremail,res);
     }
 
 }catch(e){
@@ -51,15 +50,15 @@ async (req: Request,res: Response)=>{
     try{    
     let username:string=req.body["username"];
     let unhashedOTP:string = req.body["otp"];
-    let emailID = globalservice.username_to_email(username);
+    let emailID = userService.usernameToEmail(username);
     let onsuccess= async ()=>{
-        let newuser = new Usermodel({
+        let newuser = new userModel({
             email:emailID,
-            regstatus:false,
+            regStatus:false,
         });
         await newuser.save();
     };
-    await globalservice.verifyOTP(res,unhashedOTP,"registration",emailID,onsuccess);
+    await userService.verifyOTP(res,unhashedOTP,"registration",emailID,onsuccess);
 
 }catch(e){
     console.log(e);
@@ -74,7 +73,7 @@ async (req: Request,res: Response)=>{
 
 router.post("/registerUser",  validate({ body: validJson.registrationSchema }),   
 async (req: Request,res: Response)=>{
-    let data:object = await globalservice.jwtVerifyx(req,res,"registration");
+    let data:object = await globalService.jwtVerifyHTTP(req,res,"registration");
     if(data)
     {
         try{    
@@ -82,9 +81,9 @@ async (req: Request,res: Response)=>{
             let pass:string = req.body["password"];
             let rollno:string = req.body["rollno"];
             let email:String = data["email"];
-            const user = await Usermodel.findOne({
+            const user = await userModel.findOne({
                 email:email,
-                regstatus:false,
+                regStatus:false,
             });
             if(!user)
             {
@@ -96,14 +95,13 @@ async (req: Request,res: Response)=>{
                 const saltrounds=10;
                 const hashpass = await bcrypt.hashSync(pass,saltrounds);
                 const date = Date.now();
-                const initWallet = userservice.encryptAmount(400);
+                const initWallet = userService.encryptAmount(400);
                 const payload = {
                     "email":email,
                     "purpose":"ops",
                     "name":name,
                     "rollno":rollno,
                     "lat":date,
-                    "wallet":initWallet
                 };
         
                 jwt.sign(
@@ -118,32 +116,53 @@ async (req: Request,res: Response)=>{
                             });
                         }else{
 
-                            await Usermodel.updateOne({
+                            await userModel.updateOne({
                                 "email":email,
-                                "regstatus":false
+                                "regStatus":false
                             },{
                                 $set:{
-                                    regstatus:true,
+                                    regStatus:true,
                                     name:name,
                                     rollno:rollno,
                                     password:hashpass,
-                                    logintime:date,
-                                    wallet:initWallet
+                                    wallet:initWallet,
+                                    loginTime:date
                                 }
-                            }).then((data)=>{
-                                res.status(200).json({
-                                    "status":true,
-                                    "message":"Registered Successfully!",
-                                    "data":{
-                                        "name":name,
-                                        "rollno":rollno,
-                                        "email":email,
-                                        "token":tokenx,
-                                        "wallet":userservice.decryptAmount(initWallet)
+                            }).then(async (data)=>{
+                                const saving = await cacheService.mongoSetLat(email,date);
+                                console.log(saving);
+                                if(saving['status']===true)
+                                {
+                                    res.status(200).json({
+                                        "status":true,
+                                        "message":"Registered Successfully!",
+                                        "data":{
+                                            "name":name,
+                                            "rollno":rollno,
+                                            "email":email,
+                                            "token":tokenx,
+                                            "wallet":userService.decryptAmount(initWallet)
+                                        }
+                                    });
+                                }else{
+                                    res.status(500).json({
+                                        "status":false,
+                                        "message":"Error registering, please retry!",
+                                        "data":saving['message']
+                                    });
+                                }
+                            }).catch(async (err)=>{
+                                await userModel.updateOne({
+                                    "email":email,
+                                },{
+                                    $set:{
+                                        regStatus:false,
+                                        name:"",
+                                        rollno:"",
+                                        password:"",
+                                        wallet:""
                                     }
-                                });
-            
-                            }).catch((err)=>{
+                                })
                                 res.status(500).json({
                                     "status":false,
                                     "message":"Error registering, please retry!",
@@ -179,9 +198,9 @@ async (req: Request,res: Response)=>{
     try{    
     let pass:string = req.body["password"];
     let email:string = req.body["email"];
-    const user = await Usermodel.findOne({
+    const user = await userModel.findOne({
         email:email,
-        regstatus:true,
+        regStatus:true,
     });
     if(!user)
     {
@@ -205,7 +224,6 @@ async (req: Request,res: Response)=>{
                 "name":name,
                 "rollno":rollno,
                 "lat":date,
-                "wallet":walletenc
             };
     
             jwt.sign(
@@ -220,14 +238,9 @@ async (req: Request,res: Response)=>{
                             "data":String(err)
                         });
                     }else{
-                        await Usermodel.updateOne({
-                            email:email,
-                        },{
-                            $set:{
-                                logintime:date,
-                            }
-                        }
-                        ).then((data)=>{
+                        const saving = await cacheService.mongoSetLat(email,date);
+                        if(saving['status']===true)
+                        {
                             res.status(200).json({
                                 "status":true,
                                 "message":"Logged in Successfully",
@@ -236,15 +249,16 @@ async (req: Request,res: Response)=>{
                                     "rollno":rollno,
                                     "email":email,
                                     "token":tokenx,
-                                    "wallet":userservice.decryptAmount(walletenc)
+                                    "wallet":userService.decryptAmount(walletenc)
                                 }});
-                        }).catch((error)=>{
+
+                        }else{
                             res.status(500).json({
                                 "status":false,
-                                "message":"Error logging in!",
-                                "data":String(error)
+                                "message":"Error registering, please retry!",
+                                "data":saving['message']
                             });
-                        });
+                        }
 
                     }
 
@@ -271,14 +285,14 @@ async (req: Request,res: Response)=>{
 
 router.post("/resetPassSendOTP",validate({ body: validJson.usernameSchema }),async(req:Request,res:Response)=>{
     try{    
-    let username:string=globalservice.username_to_email(req.body["username"]);
-    let user = await Usermodel.findOne({
+    let username:string=userService.usernameToEmail(req.body["username"]);
+    let user = await userModel.findOne({
         email:username,
-        regstatus:true
+        regStatus:true
     });
     if(user)
     {
-        await globalservice.sendOTPMail('reset',username,res);
+        await userService.sendOTPMail('reset',username,res);
     }else{
         res.status(400).json({
             "status":false,
@@ -302,8 +316,8 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
     try{    
         let username:string=req.body["username"];
         let unhashedOTP:string = req.body["otp"];
-        let emailID = globalservice.username_to_email(username);
-        await globalservice.verifyOTP(res,unhashedOTP,'reset',emailID)
+        let emailID = userService.usernameToEmail(username);
+        await userService.verifyOTP(res,unhashedOTP,'reset',emailID)
     
     }catch(e){
         console.log(e);
@@ -316,13 +330,13 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
 });
 
 router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
-    let data = await globalservice.jwtVerifyx(req,res,'reset');
+    let data = await globalService.jwtVerifyHTTP(req,res,'reset');
     if(data)
     {
         try{    
             let newpass:string=req.body["newpass"];
             let email:string = data["email"];
-            let user = await Usermodel.find({
+            let user = await userModel.find({
                 email:email
             });
             if(!user)
@@ -334,7 +348,7 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
             }else{
                 const saltrounds=10;
                 const hashpass = await bcrypt.hashSync(newpass,saltrounds);
-                await Usermodel.updateOne({
+                await userModel.updateOne({
                     email:email,
                 },{
                     $set:{

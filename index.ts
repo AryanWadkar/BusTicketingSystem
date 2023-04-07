@@ -8,10 +8,11 @@ const app = express();
 // local imports
 const InitMongoServer = require("./config/db");
 const middleWare = require("./config/middleware");
-const user = require("./routes/userapis");
-const globalservices = require('./services/global_services');
+const userrest = require("./routes/userapisrest");
+const globalservices = require('./services/globalservices');
 const bus = require('./routes/busapis');
 const dev = require('./routes/dev');
+const usersocket = require('./routes/userapissocket')
 //Initialization and vars
 InitMongoServer();
 
@@ -30,7 +31,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Buts server functional!" });
 });
 
-app.use("/user", user);
+app.use("/user", userrest);
 
 app.use("/dev", dev);
 
@@ -43,7 +44,9 @@ console.log(`Server is running on port ${PORT}`);
 
 const io = new Server(server, { /* options */ });
 
-io.use(globalservices.verifySocket).on("connection", (socket)=>{
+io.use(globalservices.jwtVerifySocket).on("connection", (socket)=>{
   bus.busData(socket,io);
   bus.bookTicket(socket,io);
+  usersocket.getWallet(socket,io);
+  usersocket.getBookings(socket,io);
 });

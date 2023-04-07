@@ -1,10 +1,10 @@
 import * as mongoose from 'mongoose';
 import { Response,Request } from 'express';
-const globalservice = require('../services/global_services');
+const globalservice = require('../services/globalservices');
 require('dotenv').config();
 const TicketModel = require('../models/ticket');
 const jwt = require("jsonwebtoken");
-const userservice = require('../services/user_services');
+const userservice = require('../services/userservices');
 const Usermodel = require("../models/user");
 const TransactionModel = require("../models/transaction");
 
@@ -13,7 +13,7 @@ const TransactionModel = require("../models/transaction");
         //await globalservice.verifySocket(socket,()=>{},false); restore later
         const tickets = await TicketModel.find();
         const buses = tickets.reduce((acc, ticket) => {
-            if (ticket.user_email === '') {
+            if (ticket.email === '') {
               const existingBus = acc.find(bus => 
                 bus.time.getHours()===ticket.startTime.getHours() && bus.time.getMinutes()===ticket.startTime.getMinutes());
               if (existingBus) {
@@ -36,7 +36,7 @@ const TransactionModel = require("../models/transaction");
                 const bus = buses.find(bus=>bus.time.getHours()===ticket.startTime.getHours() && bus.time.getMinutes()===ticket.startTime.getMinutes());
                 if(bus)
                 {
-                    if(ticket.user_email==="" && ticket.txnid==="")
+                    if(ticket.email==="" && ticket.txnid==="")
                     {
                         bus.count++;
                     }else{
@@ -75,7 +75,7 @@ function bookTicket(socket,io){
                 });
                 const walletenc = user.wallet;
                 const ticketex = await TicketModel.find({
-                    user_email:email
+                    email:email
                 });
                 //console.log('ticket ex',ticketex);
                 if(ticketex.length>0)
@@ -89,7 +89,7 @@ function bookTicket(socket,io){
                           source:datain['src'],
                           destination:datain['dest'],
                           startTime:datain['time'],
-                          user_email: { $eq: "" },
+                          email: { $eq: "" },
                           txnid:{ $eq: "" }
                         }
                       ).session(session); 
@@ -121,7 +121,7 @@ function bookTicket(socket,io){
 
                                       const transaction = new TransactionModel({
                                         amount: 20,
-                                        user_email: email,
+                                        email: email,
                                         date: new Date(),
                                         type: '-'
                                       });
@@ -130,7 +130,7 @@ function bookTicket(socket,io){
                                       const newtransaction= await transaction.save({session});
                                       await TicketModel.updateOne(
                                         { _id: ticket._id },
-                                        { $set: { txnid: newtransaction._id,user_email:email } },
+                                        { $set: { txnid: newtransaction._id,email:email } },
                                         { session }
                                       ).session(session);
                                       await session.commitTransaction();

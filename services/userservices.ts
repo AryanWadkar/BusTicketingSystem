@@ -1,43 +1,34 @@
-const jwt = require("jsonwebtoken");
 require('dotenv').config();
 import { Request, Response } from 'express';
+const Usermodel = require("../models/user");
+const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 import * as nodemailer from 'nodemailer';
 const OTPmodel = require("../models/otp");
-import { Socket } from "socket.io";
-const userservice = require('./user_services');
+const jwt = require("jsonwebtoken");
 
-async function jwtVerifyx(req:Request,res:Response,purpose:String):Promise<object | null>{
-    const authHeader = req.headers.authorization;
-        if (authHeader) {
-        //expected token format "Bearer eyjwnfkabs...."
-        const token = authHeader.split(' ')[1];
-        
-        const data = await new Promise<object>((resolve, reject) => {
-            jwt.verify(token, process.env.JWT_KEY, (err, data) => {
-              if (err || data["purpose"] !== purpose) {
-                res.status(403).json({
-                    "status":false,
-                    "message":"Unauthorized",
-                    "data":err
-                });
-              } else {
-                resolve(data);
-              }
-            });
-          }); 
-          return data;
-    } else {
-        res.status(401).json({
-            "status":false,
-            "message":"Token not found!"
-        });
-        return null;
-    }
-    
-}
+function encryptAmount(amount:Number):String {
+    let iv = crypto.randomBytes(16);
+    let key = crypto.createHash('sha256').update(String(process.env.ENC_KEY)).digest('base64').substr(0, 32);
+    let cipher = crypto.createCipheriv('aes-256-cbc',key, iv);
+    let encrypted = cipher.update(amount.toString());
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    return iv.toString('hex') + ':' + encrypted.toString('hex');
+  }
+  
+  function decryptAmount(encryptedAmount:String):Number {
+    let textParts = encryptedAmount.split(':');
+    let iv = Buffer.from(textParts.shift(), 'hex');
+    let encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    let key = crypto.createHash('sha256').update(String(process.env.ENC_KEY)).digest('base64').substr(0, 32);
+    let decipher = crypto.createDecipheriv('aes-256-cbc',key, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    let amt = decrypted.toString()
+    return parseFloat(amt);
+  }
 
-const sendOTPMail= async (type:String,tosend:String,res:Response) => {
+  const sendOTPMail= async (type:String,tosend:String,res:Response) => {
 
     let transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -182,82 +173,17 @@ const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:St
     });
 }
 
-function username_to_email(inval:string){
+function usernameToEmail(inval:string){
     inval=inval.toLowerCase();
     inval = inval.replaceAll(".","");
     inval += "@iiitdmj.ac.in";
     return inval;
 }
 
-async function verifySocket(socket: Socket,next,send:boolean){
-    console.log('verifying');
-    send = typeof send !== "undefined" ? send : true;
-    const authkey:string = socket.client.request.headers.authorization;
-    try{
-        const data = jwt.verify(authkey,process.env.JWT_KEY);
-        if(data)
-        {
-          console.log('Valid user!!');
-          const validtoken = await userservice.verifyLoginx(data);
-          if(validtoken)
-          {
-            console.log('Validated!');
-            if(send)
-            {
-                socket.emit('Connection_Success',{
-                    'status':true,
-                    'message':'Connected!'
-                  });
-            }
-          }else{
-            socket.emit('Connection_Error',{
-                'status':false,
-                'message':'Expired Token!',
-              });
-              socket.disconnect();
-          }
-        }else{
-          console.log('Invalid user!');
-          socket.emit('Connection_Error',{
-            'status':false,
-            'message':'Invalid token!',
-          });
-          socket.disconnect();
-        }
-    }catch(err)
-    {
-          console.log('Validation Error!');
-          socket.emit('Connection_Error',{
-            'status':false,
-            'message':'Token not found',
-            'data':String(err)
-          });
-          socket.disconnect();
-    }
-    if(next!=undefined)
-    {
-        next();
-    }
-
-}
-
-
-
-// const gethandm = (ticket)=>{
-//     const date = ticket.startTime;
-//     const formattedDate = date.toLocaleString('en-US', {timeZone:'Asia/Kolkata'});
-//     const dateObj = new Date(formattedDate);
-//     const hour = dateObj.getHours();
-//     const minute = dateObj.getMinutes();
-//     return {hour,minute};
-// }
-
-
-
 module.exports = {
-    jwtVerifyx,
+    encryptAmount,
+    decryptAmount,
     sendOTPMail,
     verifyOTP,
-    username_to_email,
-    verifySocket
+    usernameToEmail,
 }

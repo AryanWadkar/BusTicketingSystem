@@ -14,7 +14,7 @@ const Ticket = new mongoose.Schema({
     type:Date,
     required:true
   },
-  user_email: {
+  email: {
     type: String,
   },
   txnid:{

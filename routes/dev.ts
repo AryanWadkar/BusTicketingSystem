@@ -9,7 +9,7 @@ router.get("/addtickets",async(req,res)=>{
         source: "A",
         destination: "B",
         startTime:date,
-        user_email: "",
+        email: "",
         txnid:"",
     });
     await newticket.save();

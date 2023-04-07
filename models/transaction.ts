@@ -6,7 +6,7 @@ const Transaction = new mongoose.Schema({
     type: Number,
     required: true
   },
-  user_email: {
+  email: {
     type: String,
     required: true
   },
