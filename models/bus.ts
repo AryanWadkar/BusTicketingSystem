@@ -28,4 +28,4 @@ const Bus = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model("busMaster", Bus);
+module.exports = mongoose.model("bus", Bus);

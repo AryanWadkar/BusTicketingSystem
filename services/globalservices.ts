@@ -13,7 +13,7 @@ const jwtAuth = async (authKey:String,purpose:String): Promise<object>=>{
         {
             if(purpose=="ops")
             {
-                const res = await cacheService.mongoCheckLat(data['email'],data['lat']);
+                const res = await cacheService.diskOperateLat(data['email'],data['lat']);
                 return {"status":res['status'],message:res['message'],data:data};
             }else{
                 return {"status":true,message:"Verfied successfully",data:data};
@@ -43,7 +43,7 @@ async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<ob
                 res.status(403).json({
                     "status":false,
                     "message":"Invalid Token!",
-                    "data":res['message']
+                    "data":result['message']
                 });
             }
           }); 
@@ -59,11 +59,10 @@ async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<ob
 }
 
 async function jwtVerifySocket(socket: Socket,next){
-    console.log('verifying');
+    console.log('Validating socket connection');
     const authkey:string = socket.client.request.headers.authorization;
     try{
         const res = await jwtAuth(authkey,"ops");
-        console.log(res);
         if(res['status']===true)
         {
             console.log('Validated!');
@@ -76,8 +75,9 @@ async function jwtVerifySocket(socket: Socket,next){
           socket.emit('Connection_Error',{
             'status':false,
             'message':'Invalid token!',
+            'data':res['message']
           });
-          socket.disconnect();
+          socket.disconnect(true);
         }
     }catch(err)
     {
@@ -87,7 +87,7 @@ async function jwtVerifySocket(socket: Socket,next){
             'message':'Token not found',
             'data':String(err)
           });
-          socket.disconnect();
+          socket.disconnect(true);
     }
     if(next!=undefined)
     {
@@ -96,7 +96,41 @@ async function jwtVerifySocket(socket: Socket,next){
 
 }
 
+async function authenticateOps(socket: Socket,next,error:string,route:string){
+    try{
+        const authkey:string = socket.client.request.headers.authorization;
+        const res = await jwtAuth(authkey,"ops");
+        if(res['status']===true)
+        {
+            const data=res['data'];
+            if(data)
+            {
+                try{
+                    next(data);
+                }catch(e){
+                    socket.emit(error,{
+                        "data":String(e)
+                    });
+                }
+    
+            }else{
+                socket.emit(error,{
+                    "data":"Invalid JWT"
+                });
+            }
+        }else{
+            socket.emit(error,{
+                "data":"Invalid JWT"
+            });
+        }
 
+    }catch(e){
+        console.log(route,e);
+        socket.emit(error,{
+            "data":String(e)
+        });
+    }
+}
 
 // const gethandm = (ticket)=>{
 //     const date = ticket.startTime;
@@ -112,5 +146,6 @@ async function jwtVerifySocket(socket: Socket,next){
 module.exports = {
     jwtVerifyHTTP,
     jwtVerifySocket,
-    jwtAuth
+    jwtAuth,
+    authenticateOps
 }

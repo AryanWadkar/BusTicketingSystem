@@ -34,7 +34,7 @@ async (req: Request,res: Response)=>{
     }
 
 }catch(e){
-        console.log(e);
+        console.log('/usercheck',e);
         res.status(400).json({
             "status":false,
             "message":String(e),
@@ -61,7 +61,7 @@ async (req: Request,res: Response)=>{
     await userService.verifyOTP(res,unhashedOTP,"registration",emailID,onsuccess);
 
 }catch(e){
-    console.log(e);
+    console.log('/verifyOTP',e);
         res.status(400).json({
             "status":false,
             "message":String(e),
@@ -129,8 +129,7 @@ async (req: Request,res: Response)=>{
                                     loginTime:date
                                 }
                             }).then(async (data)=>{
-                                const saving = await cacheService.mongoSetLat(email,date);
-                                console.log(saving);
+                                const saving = await cacheService.diskOperateLat(email,date);
                                 if(saving['status']===true)
                                 {
                                     res.status(200).json({
@@ -176,7 +175,7 @@ async (req: Request,res: Response)=>{
             }
         
         }catch(e){
-            console.log(e);
+            console.log('/registerUser',e);
                 res.status(400).json({
                     "status":false,
                     "message":String(e),
@@ -238,7 +237,7 @@ async (req: Request,res: Response)=>{
                             "data":String(err)
                         });
                     }else{
-                        const saving = await cacheService.mongoSetLat(email,date);
+                        const saving = await cacheService.diskOperateLat(email,date);
                         if(saving['status']===true)
                         {
                             res.status(200).json({
@@ -273,7 +272,7 @@ async (req: Request,res: Response)=>{
     }
 
 }catch(e){
-    console.log(e);
+    console.log('/loginUser',e);
         res.status(400).json({
             "status":false,
             "message":String(e),
@@ -303,7 +302,7 @@ router.post("/resetPassSendOTP",validate({ body: validJson.usernameSchema }),asy
     }
 
 }catch(e){
-    console.log(e);
+    console.log('/resetPassSendOTP',e);
         res.status(400).json({
             "status":false,
             "message":String(e),
@@ -320,7 +319,7 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
         await userService.verifyOTP(res,unhashedOTP,'reset',emailID)
     
     }catch(e){
-        console.log(e);
+        console.log('resetPassVerifyOTP',e);
             res.status(500).json({
                 "status":false,
                 "message":"Unkown Error",
@@ -370,7 +369,7 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
             }
         
         }catch(e){
-            console.log(e);
+            console.log('/resetPassword',e);
                 res.status(400).json({
                     "status":false,
                     "message":"Invalid request",

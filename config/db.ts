@@ -10,8 +10,7 @@ const InitiateMongoServer = async () => {
     } as mongoose.ConnectOptions);
     console.log("Connected to DB !!");
   } catch (e) {
-    console.log(e);
-    throw e;
+    console.log('DB Connection Error',e);
   }
 };
 
