@@ -13,14 +13,19 @@ const UserSchema = mongoose.Schema({
     rollno: {
         type: String
     },
-    logstatus: {
-        type: Boolean
-    },
-    regstatus: {
+    regStatus: {
         type: Boolean,
         required: true
     },
     createdAt: {
+        type: Date,
+        default: Date.now()
+    },
+    wallet: {
+        type: String,
+        default: ""
+    },
+    loginTime: {
         type: Date,
         default: Date.now()
     }

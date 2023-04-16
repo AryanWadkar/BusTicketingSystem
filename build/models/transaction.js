@@ -6,7 +6,7 @@ const Transaction = new mongoose_1.default.Schema({
         type: Number,
         required: true
     },
-    user_email: {
+    email: {
         type: String,
         required: true
     },
@@ -14,6 +14,10 @@ const Transaction = new mongoose_1.default.Schema({
         type: Date,
         required: true
     },
+    type: {
+        type: String,
+        required: true
+    }
 });
-module.exports = mongoose_1.default.model("busMaster", Transaction);
+module.exports = mongoose_1.default.model("Transaction", Transaction);
 //# sourceMappingURL=transaction.js.map

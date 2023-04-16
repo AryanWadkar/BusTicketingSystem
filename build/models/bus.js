@@ -27,5 +27,5 @@ const Bus = new mongoose_1.default.Schema({
         required: true
     }
 });
-module.exports = mongoose_1.default.model("busMaster", Bus);
+module.exports = mongoose_1.default.model("bus", Bus);
 //# sourceMappingURL=bus.js.map

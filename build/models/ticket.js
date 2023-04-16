@@ -14,14 +14,12 @@ const Ticket = new mongoose_1.default.Schema({
         type: Date,
         required: true
     },
-    user_email: {
+    email: {
         type: String,
-        required: true
     },
     txnid: {
-        type: Number,
-        required: true
+        type: String,
     },
 });
-module.exports = mongoose_1.default.model("busMaster", Ticket);
+module.exports = mongoose_1.default.model("Ticket", Ticket);
 //# sourceMappingURL=ticket.js.map

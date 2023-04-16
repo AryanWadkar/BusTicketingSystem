@@ -10,5 +10,11 @@
           "src": "/(.*)",
           "dest": "build/index.js"
         }
-    ]
+    ],
+    "crons": [
+        {
+          "path": "build/schedulers/clearscheduler.js",
+          "schedule": "30 5 * * *"
+        }
+      ]
   }

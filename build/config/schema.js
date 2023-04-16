@@ -39,9 +39,9 @@ const registrationSchema = {
 };
 const loginSchema = {
     type: "object",
-    required: ["name", "password"],
+    required: ["email", "password"],
     properties: {
-        username: {
+        email: {
             type: "string",
         },
         password: {

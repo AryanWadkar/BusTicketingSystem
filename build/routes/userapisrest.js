@@ -7,16 +7,18 @@ const validJson = require("../config/schema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
-const Usermodel = require("../models/user");
-const globalservice = require('../services/global_services');
+const userModel = require("../models/user");
+const globalService = require('../services/globalservices');
 const { validate } = new express_json_validator_middleware_1.Validator({});
+const userService = require('../services/userservices');
+const cacheService = require('../services/cacheservices');
 router.post("/usercheck", validate({ body: validJson.usernameSchema }), async (req, res) => {
     try {
         let username = req.body["username"];
-        let useremail = globalservice.username_to_email(username);
-        let user = await Usermodel.findOne({
+        let useremail = userService.usernameToEmail(username);
+        let user = await userModel.findOne({
             email: useremail,
-            regstatus: true
+            regStatus: true
         });
         if (user) {
             res.status(200).json({
@@ -26,15 +28,15 @@ router.post("/usercheck", validate({ body: validJson.usernameSchema }), async (r
             });
         }
         else {
-            await Usermodel.deleteMany({ email: useremail });
-            await globalservice.sendOTPMail('verify', useremail, res);
+            await userModel.deleteMany({ email: useremail });
+            await userService.sendOTPMail('verify', useremail, res);
         }
     }
     catch (e) {
-        console.log(e);
+        console.log('/usercheck', e);
         res.status(400).json({
             "status": false,
-            "message": e,
+            "message": String(e),
         });
     }
 });
@@ -42,35 +44,35 @@ router.post("/verifyOTP", validate({ body: validJson.username_opt_Schema }), asy
     try {
         let username = req.body["username"];
         let unhashedOTP = req.body["otp"];
-        let emailID = globalservice.username_to_email(username);
+        let emailID = userService.usernameToEmail(username);
         let onsuccess = async () => {
-            let newuser = new Usermodel({
+            let newuser = new userModel({
                 email: emailID,
-                regstatus: false,
+                regStatus: false,
             });
             await newuser.save();
         };
-        await globalservice.verifyOTP(res, unhashedOTP, "registration", emailID, onsuccess);
+        await userService.verifyOTP(res, unhashedOTP, "registration", emailID, onsuccess);
     }
     catch (e) {
-        console.log(e);
+        console.log('/verifyOTP', e);
         res.status(400).json({
             "status": false,
-            "message": e,
+            "message": String(e),
         });
     }
 });
 router.post("/registerUser", validate({ body: validJson.registrationSchema }), async (req, res) => {
-    let data = await globalservice.jwtVerifyx(req, res, "registration");
+    let data = await globalService.jwtVerifyHTTP(req, res, "registration");
     if (data) {
         try {
             let name = req.body["name"];
             let pass = req.body["password"];
             let rollno = req.body["rollno"];
             let email = data["email"];
-            const user = await Usermodel.findOne({
+            const user = await userModel.findOne({
                 email: email,
-                regstatus: false,
+                regStatus: false,
             });
             if (!user) {
                 res.status(404).json({
@@ -81,48 +83,74 @@ router.post("/registerUser", validate({ body: validJson.registrationSchema }), a
             else {
                 const saltrounds = 10;
                 const hashpass = await bcrypt.hashSync(pass, saltrounds);
+                const date = Date.now();
+                const initWallet = userService.encryptAmount(400);
                 const payload = {
                     "email": email,
                     "purpose": "ops",
                     "name": name,
-                    "rollno": rollno
+                    "rollno": rollno,
+                    "lat": date,
                 };
                 jwt.sign(payload, process.env.JWT_KEY, async (err, tokenx) => {
                     if (err) {
                         res.status(500).json({
                             "status": false,
                             "message": "Error generating JWT",
-                            "data": err
+                            "data": String(err)
                         });
                     }
                     else {
-                        await Usermodel.updateOne({
+                        await userModel.updateOne({
                             "email": email,
-                            "regstatus": false
+                            "regStatus": false
                         }, {
                             $set: {
-                                regstatus: true,
+                                regStatus: true,
                                 name: name,
                                 rollno: rollno,
-                                logstatus: true,
-                                password: hashpass
+                                password: hashpass,
+                                wallet: initWallet,
+                                loginTime: date
                             }
-                        }).then((data) => {
-                            res.status(200).json({
-                                "status": true,
-                                "message": "Registered Successfully!",
-                                "data": {
-                                    "name": name,
-                                    "rollno": rollno,
-                                    "email": email,
-                                    "token": tokenx,
+                        }).then(async (data) => {
+                            const saving = await cacheService.diskOperateLat(email, date);
+                            if (saving['status'] === true) {
+                                res.status(200).json({
+                                    "status": true,
+                                    "message": "Registered Successfully!",
+                                    "data": {
+                                        "name": name,
+                                        "rollno": rollno,
+                                        "email": email,
+                                        "token": tokenx,
+                                        "wallet": userService.decryptAmount(initWallet)
+                                    }
+                                });
+                            }
+                            else {
+                                res.status(500).json({
+                                    "status": false,
+                                    "message": "Error registering, please retry!",
+                                    "data": saving['message']
+                                });
+                            }
+                        }).catch(async (err) => {
+                            await userModel.updateOne({
+                                "email": email,
+                            }, {
+                                $set: {
+                                    regStatus: false,
+                                    name: "",
+                                    rollno: "",
+                                    password: "",
+                                    wallet: ""
                                 }
                             });
-                        }).catch((err) => {
                             res.status(500).json({
                                 "status": false,
                                 "message": "Error registering, please retry!",
-                                "data": err
+                                "data": String(err)
                             });
                         });
                     }
@@ -130,10 +158,10 @@ router.post("/registerUser", validate({ body: validJson.registrationSchema }), a
             }
         }
         catch (e) {
-            console.log(e);
+            console.log('/registerUser', e);
             res.status(400).json({
                 "status": false,
-                "message": e,
+                "message": String(e),
             });
         }
     }
@@ -148,9 +176,9 @@ router.post("/loginUser", validate({ body: validJson.loginSchema }), async (req,
     try {
         let pass = req.body["password"];
         let email = req.body["email"];
-        const user = await Usermodel.findOne({
+        const user = await userModel.findOne({
             email: email,
-            regstatus: true,
+            regStatus: true,
         });
         if (!user) {
             res.status(404).json({
@@ -164,47 +192,46 @@ router.post("/loginUser", validate({ body: validJson.loginSchema }), async (req,
             if (validity) {
                 const rollno = user.rollno;
                 const name = user.name;
+                const date = Date.now();
+                const walletenc = user.wallet;
                 const payload = {
                     "email": email,
                     "purpose": "ops",
                     "name": name,
-                    "rollno": rollno
+                    "rollno": rollno,
+                    "lat": date,
                 };
                 jwt.sign(payload, process.env.JWT_KEY, async (err, tokenx) => {
                     if (err) {
                         res.status(500).json({
                             "status": false,
                             "message": "Error signing JWT",
-                            "data": err
+                            "data": String(err)
                         });
                     }
                     else {
-                    }
-                    await Usermodel.updateOne({
-                        email: email,
-                        regstatus: false
-                    }, {
-                        $set: {
-                            logstatus: true
+                        const saving = await cacheService.diskOperateLat(email, date);
+                        if (saving['status'] === true) {
+                            res.status(200).json({
+                                "status": true,
+                                "message": "Logged in Successfully",
+                                "data": {
+                                    "name": name,
+                                    "rollno": rollno,
+                                    "email": email,
+                                    "token": tokenx,
+                                    "wallet": userService.decryptAmount(walletenc)
+                                }
+                            });
                         }
-                    }).then((data) => {
-                        res.status(200).json({
-                            "status": true,
-                            "message": "Logged in Successfully",
-                            "data": {
-                                "name": name,
-                                "rollno": rollno,
-                                "email": email,
-                                "token": tokenx,
-                            }
-                        });
-                    }).catch((err) => {
-                        res.status(500).json({
-                            "status": false,
-                            "message": "Error saving to DB",
-                            "data": err
-                        });
-                    });
+                        else {
+                            res.status(500).json({
+                                "status": false,
+                                "message": "Error registering, please retry!",
+                                "data": saving['message']
+                            });
+                        }
+                    }
                 });
             }
             else {
@@ -216,22 +243,22 @@ router.post("/loginUser", validate({ body: validJson.loginSchema }), async (req,
         }
     }
     catch (e) {
-        console.log(e);
+        console.log('/loginUser', e);
         res.status(400).json({
             "status": false,
-            "message": e,
+            "message": String(e),
         });
     }
 });
 router.post("/resetPassSendOTP", validate({ body: validJson.usernameSchema }), async (req, res) => {
     try {
-        let username = globalservice.username_to_email(req.body["username"]);
-        let user = await Usermodel.findOne({
+        let username = userService.usernameToEmail(req.body["username"]);
+        let user = await userModel.findOne({
             email: username,
-            regstatus: true
+            regStatus: true
         });
         if (user) {
-            await globalservice.sendOTPMail('reset', username, res);
+            await userService.sendOTPMail('reset', username, res);
         }
         else {
             res.status(400).json({
@@ -242,10 +269,10 @@ router.post("/resetPassSendOTP", validate({ body: validJson.usernameSchema }), a
         }
     }
     catch (e) {
-        console.log(e);
+        console.log('/resetPassSendOTP', e);
         res.status(400).json({
             "status": false,
-            "message": e,
+            "message": String(e),
         });
     }
 });
@@ -253,24 +280,25 @@ router.post("/resetPassVerifyOTP", validate({ body: validJson.username_opt_Schem
     try {
         let username = req.body["username"];
         let unhashedOTP = req.body["otp"];
-        let emailID = globalservice.username_to_email(username);
-        await globalservice.verifyOTP(res, unhashedOTP, 'reset', emailID);
+        let emailID = userService.usernameToEmail(username);
+        await userService.verifyOTP(res, unhashedOTP, 'reset', emailID);
     }
     catch (e) {
-        console.log(e);
+        console.log('resetPassVerifyOTP', e);
         res.status(500).json({
             "status": false,
             "message": "Unkown Error",
+            'data': String(e)
         });
     }
 });
-router.post("/resetPassword", validate({ body: validJson.resetPassSchema }), async (req, res) => {
-    let data = await globalservice.jwtVerifyx(req, res, 'reset');
+router.patch("/resetPassword", validate({ body: validJson.resetPassSchema }), async (req, res) => {
+    let data = await globalService.jwtVerifyHTTP(req, res, 'reset');
     if (data) {
         try {
             let newpass = req.body["newpass"];
             let email = data["email"];
-            let user = await Usermodel.find({
+            let user = await userModel.find({
                 email: email
             });
             if (!user) {
@@ -282,7 +310,7 @@ router.post("/resetPassword", validate({ body: validJson.resetPassSchema }), asy
             else {
                 const saltrounds = 10;
                 const hashpass = await bcrypt.hashSync(newpass, saltrounds);
-                await Usermodel.updateOne({
+                await userModel.updateOne({
                     email: email,
                 }, {
                     $set: {
@@ -296,16 +324,18 @@ router.post("/resetPassword", validate({ body: validJson.resetPassSchema }), asy
                 }).catch((error) => {
                     res.status(500).json({
                         "status": false,
-                        "message": "Error resetting password!"
+                        "message": "Error resetting password!",
+                        "data": String(error)
                     });
                 });
             }
         }
         catch (e) {
-            console.log(e);
+            console.log('/resetPassword', e);
             res.status(400).json({
                 "status": false,
-                "message": e,
+                "message": "Invalid request",
+                'data': String(e)
             });
         }
     }
@@ -317,4 +347,4 @@ router.post("/resetPassword", validate({ body: validJson.resetPassSchema }), asy
     }
 });
 module.exports = router;
-//# sourceMappingURL=userapis.js.map
+//# sourceMappingURL=userapisrest.js.map

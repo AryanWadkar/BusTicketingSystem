@@ -1,38 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const jwt = require("jsonwebtoken");
 require('dotenv').config();
+const Usermodel = require("../models/user");
+const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const OTPmodel = require("../models/otp");
-async function jwtVerifyx(req, res, purpose) {
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-        //expected token format "Bearer eyjwnfkabs...."
-        const token = authHeader.split(' ')[1];
-        const data = await new Promise((resolve, reject) => {
-            jwt.verify(token, process.env.JWT_KEY, (err, data) => {
-                if (err || data["purpose"] !== purpose) {
-                    res.status(403).json({
-                        "status": false,
-                        "message": "Unauthorized",
-                        "data": err
-                    });
-                }
-                else {
-                    resolve(data);
-                }
-            });
-        });
-        return data;
-    }
-    else {
-        res.status(401).json({
-            "status": false,
-            "message": "Token not found!"
-        });
-        return null;
-    }
+const jwt = require("jsonwebtoken");
+function encryptAmount(amount) {
+    let iv = crypto.randomBytes(16);
+    let key = crypto.createHash('sha256').update(String(process.env.ENC_KEY)).digest('base64').substr(0, 32);
+    let cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(amount.toString());
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+function decryptAmount(encryptedAmount) {
+    let textParts = encryptedAmount.split(':');
+    let iv = Buffer.from(textParts.shift(), 'hex');
+    let encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    let key = crypto.createHash('sha256').update(String(process.env.ENC_KEY)).digest('base64').substr(0, 32);
+    let decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    let amt = decrypted.toString();
+    return parseFloat(amt);
 }
 const sendOTPMail = async (type, tosend, res) => {
     let transporter = nodemailer.createTransport({
@@ -109,9 +101,9 @@ const verifyOTP = async (res, unhashedOTP, purpose, emailID, onsuccess) => {
     await OTPmodel.find({
         email: emailID
     }).then(async (data) => {
-        const expiry = data[0].expiresAt;
-        const hashedotp = data[0].otp;
-        console.log(hashedotp);
+        const expiry = data[data.length - 1].expiresAt;
+        const hashedotp = data[data.length - 1].otp;
+        console.log(expiry.type);
         if (expiry < Date.now()) {
             await OTPmodel.collection.deleteMany({ email: emailID });
             res.status(404).json({
@@ -121,7 +113,6 @@ const verifyOTP = async (res, unhashedOTP, purpose, emailID, onsuccess) => {
         }
         else {
             const validity = await bcrypt.compareSync(unhashedOTP, hashedotp);
-            console.log(validity);
             if (validity) {
                 await OTPmodel.deleteMany({ email: emailID });
                 const payload = {
@@ -137,7 +128,6 @@ const verifyOTP = async (res, unhashedOTP, purpose, emailID, onsuccess) => {
                         });
                     }
                     else {
-                        console.log(onsuccess);
                         if (onsuccess) {
                             await onsuccess();
                         }
@@ -160,20 +150,21 @@ const verifyOTP = async (res, unhashedOTP, purpose, emailID, onsuccess) => {
         res.status(404).json({
             "status": false,
             "message": "No corresponding OTP found, please request again!",
-            "data": error
+            "data": String(error)
         });
     });
 };
-function username_to_email(inval) {
+function usernameToEmail(inval) {
     inval = inval.toLowerCase();
     inval = inval.replaceAll(".", "");
     inval += "@iiitdmj.ac.in";
     return inval;
 }
 module.exports = {
-    jwtVerifyx,
+    encryptAmount,
+    decryptAmount,
     sendOTPMail,
     verifyOTP,
-    username_to_email
+    usernameToEmail,
 };
-//# sourceMappingURL=global_services.js.map
+//# sourceMappingURL=userservices.js.map

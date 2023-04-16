@@ -12,9 +12,14 @@ const userrest = require("./routes/userapisrest");
 const globalservices = require('./services/globalservices');
 const bus = require('./routes/busapis');
 const dev = require('./routes/dev');
-const usersocket = require('./routes/userapissocket')
+const usersocket = require('./routes/userapissocket');
+const scheduler = require('./schedulers/clearscheduler');
+
+
 //Initialization and vars
 InitMongoServer();
+
+scheduler.clearticket();
 
 var corsOptions = {
     origin: "http://localhost:8081"
