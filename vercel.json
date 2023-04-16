@@ -13,7 +13,7 @@
     ],
     "crons": [
         {
-          "path": "/schedulers",
+          "path": "/dev/resetalltickets",
           "schedule": "30 5 * * *"
         }
       ]
