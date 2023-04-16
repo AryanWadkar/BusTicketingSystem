@@ -13,7 +13,7 @@
     ],
     "crons": [
         {
-          "path": "build/schedulers/clearscheduler.js",
+          "path": "build/schedulers",
           "schedule": "30 5 * * *"
         }
       ]
