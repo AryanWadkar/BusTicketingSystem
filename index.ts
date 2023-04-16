@@ -50,3 +50,5 @@ io.use(globalservices.jwtVerifySocket).on("connection", (socket)=>{
   usersocket.getWallet(socket,io);
   usersocket.getBookings(socket,io);
 });
+
+module.exports=app;
