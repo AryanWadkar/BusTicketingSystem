@@ -95,7 +95,7 @@ const diskOperateLat = async (email:String,lat:String): Promise<object>=>{
             {
                 cache.removeKey(email);
                 cache.setKey(email,lat);
-                cache.save();
+                cache.save(true);
                 return {"status":true,"message":"Updated and Validated!"};
             }else if(xlat==lat)
             {
@@ -106,8 +106,8 @@ const diskOperateLat = async (email:String,lat:String): Promise<object>=>{
             }
         }else{
             cache.setKey(email,lat);
-            cache.save();
-            return {"status":true,"message":"Validated!"};
+            cache.save(true);
+            return {"status":true,"message":"Saved Validated!"};
         }
     }catch(err){
         console.log(err,'caught at diskOperateLat');
