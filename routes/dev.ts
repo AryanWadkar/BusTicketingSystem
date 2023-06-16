@@ -2,6 +2,11 @@ import * as express from 'express';
 const router = express.Router();
 const ticketModel = require('../models/ticket');
 const busModel = require('../models/bus');
+const queueModel = require('../models/queue');
+//
+const bookingscheduler=require('../schedulers/bookscheduler');
+
+
 
 //RESET ROUTES
 router.post("/resettickets",async(req,res)=>{
@@ -66,7 +71,7 @@ router.post("/addbus",async(req,res)=>{
             startTime:date,
             capacity:capacity,
             stops:"Insti-Fresh-Sadar",
-            days:["Mon,Tue,Wed,Thu,Fri"]
+            days:["Mon","Tue","Wed","Thu","Fri"]
         });
         await newBus.save();
 
@@ -180,6 +185,24 @@ router.get("/clearalltickets",async(req,res)=>{
     res.status(200).json({
         'status':true,
         'data':data
+    });
+});
+
+router.get("/clearqueue",async(req,res)=>{
+    const data = await queueModel.deleteMany({
+    });
+    res.status(200).json({
+        'status':true,
+        'data':data
+    });
+});
+
+//PROCESS ROUTES
+
+router.get("/processqueue",async(req,res)=>{
+    bookingscheduler.processqueue();
+    res.status(200).json({
+        'status':true,
     });
 });
 

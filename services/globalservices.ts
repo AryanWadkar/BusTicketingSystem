@@ -5,7 +5,7 @@ import { Socket } from "socket.io";
 const cacheService = require('./cacheservices');
 
 
-const jwtAuth = async (authKey:String,purpose:String): Promise<object>=>{
+async function jwtAuth(authKey:String,purpose:String): Promise<object>{
     const data = jwt.verify(authKey,process.env.JWT_KEY);
     if(data)
     {
@@ -132,6 +132,13 @@ async function authenticateOps(socket: Socket,next,error:string,route:string){
     }
 }
 
+module.exports = {
+    jwtVerifyHTTP,
+    jwtVerifySocket,
+    jwtAuth,
+    authenticateOps
+}
+
 // const gethandm = (ticket)=>{
 //     const date = ticket.startTime;
 //     const formattedDate = date.toLocaleString('en-US', {timeZone:'Asia/Kolkata'});
@@ -140,12 +147,3 @@ async function authenticateOps(socket: Socket,next,error:string,route:string){
 //     const minute = dateObj.getMinutes();
 //     return {hour,minute};
 // }
-
-
-
-module.exports = {
-    jwtVerifyHTTP,
-    jwtVerifySocket,
-    jwtAuth,
-    authenticateOps
-}

@@ -23,7 +23,7 @@ scheduler.clearticket();
 
 var corsOptions = {
     origin: "http://localhost:8081"
-  };
+};
 
 const PORT = process.env.PORT || 8080;
 
@@ -52,6 +52,7 @@ const io = new Server(server, { /* options */ });
 io.use(globalservices.jwtVerifySocket).on("connection", (socket)=>{
   bus.busData(socket,io);
   bus.bookTicket(socket,io);
+  bus.joinQueue(socket,io);
   usersocket.getWallet(socket,io);
   usersocket.getBookings(socket,io);
 });

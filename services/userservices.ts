@@ -1,6 +1,5 @@
 require('dotenv').config();
 import { Request, Response } from 'express';
-const Usermodel = require("../models/user");
 const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 import * as nodemailer from 'nodemailer';
@@ -14,9 +13,9 @@ function encryptAmount(amount:Number):String {
     let encrypted = cipher.update(amount.toString());
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return iv.toString('hex') + ':' + encrypted.toString('hex');
-  }
+}
   
-  function decryptAmount(encryptedAmount:String):Number {
+function decryptAmount(encryptedAmount:String):Number {
     let textParts = encryptedAmount.split(':');
     let iv = Buffer.from(textParts.shift(), 'hex');
     let encryptedText = Buffer.from(textParts.join(':'), 'hex');
@@ -26,9 +25,9 @@ function encryptAmount(amount:Number):String {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     let amt = decrypted.toString()
     return parseFloat(amt);
-  }
+}
 
-  const sendOTPMail= async (type:String,tosend:String,res:Response) => {
+async function sendOTPMail (type:String,tosend:String,res:Response){
 
     let transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -105,7 +104,7 @@ function encryptAmount(amount:Number):String {
     });
 }
 
-const verifyOTP= async(res:Response,unhashedOTP:String,purpose:String,emailID:String,onsuccess?:()=>void)=>{
+async function verifyOTP(res:Response,unhashedOTP:String,purpose:String,emailID:String,onsuccess?:()=>void){
     console.log(emailID);
     await OTPmodel.find({
         email:emailID
