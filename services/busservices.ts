@@ -153,42 +153,6 @@ async function sendQueueMail(tosend:String,processresult:object,orignalrequestda
     <p><strong>${processresult['message']}</strong></p>`;
    }
 
-   const mailmessages={
-    "Insufficient balance!":`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
-    <p><strong>Insufficient balance in your BUTS wallet</strong></p>`,
-    "No tickets found!":`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
-    <p><strong>All tickets in your preference list were found to be exhausted</strong></p>`,
-    "Already Booked!":`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
-    <p><strong>The system detected a prexisting booking in your name</strong></p>`,
-    "No Match":`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
-    <p><strong>All tickets in your preference list were found to be exhausted</strong></p>`,
-    "Success":`    
-    <p>Your booking request has been executed successfully, the ticket allotted to you based on your preference list and subject to availability is:</p>
-    <table style="width: 100%;">
-        <tbody>
-            <tr>
-                <td style="width: 31.723%;">
-                    <div style="text-align: center;">Source</div>
-                </td>
-                <td style="width: 33.3333%;">
-                    <div style="text-align: center;">Destination</div>
-                </td>
-                <td style="width: 34.7385%;">
-                    <div style="text-align: center;">Time</div>
-                </td>
-            </tr>
-            <tr>
-                <td style="width: 31.723%;">${processresult['source']}</td>
-                <td style="width: 33.3333%;">${processresult['destination']}</td>
-                <td style="width: 34.7385%;">${processresult['startTime']}</td>
-            </tr>
-        </tbody>
-    </table>
-    <p>The details of the booked ticket are available on your BUTS app.</p>
-    <p>Happy Travelling!</p>
-    `
-   }
-
    const madeat=orignalrequestdata['madeat'];
    const preferences=orignalrequestdata['preferences'];
    let tabledata=``;
@@ -316,4 +280,4 @@ async function sendTicketMail(tosend:String,processresult:String,orignalrequestd
     transporter.sendMail(mailOptions, function(err, data) {});
 }
 
-module.exports={bookTicket,sendQueueMail,sendTicketMail};
+export{bookTicket,sendQueueMail,sendTicketMail};

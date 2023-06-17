@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf ./build && tsc",
-    "start": "npm run build && node ./build/index.js"
+    "start": "npm run build && node --max-old-space-size=128 ./build/index.js",
+    "clean": "rimraf ./node_modules", 
+    "reinstall": "npm run clean && npm install", 
+    "rebuild": "npm run clean && npm install && npm run build"
   },
   "author": "Aryan Wadkar",
   "license": "ISC",
@@ -17,12 +20,9 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-json-validator-middleware": "^3.0.1",
-    "express-validator": "^6.15.0",
     "flat-cache": "^3.0.4",
-    "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.3",
-    "node-cron": "^3.0.2",
     "nodemailer": "^6.9.1",
     "redis": "^4.6.7",
     "socket.io": "^4.6.1"

@@ -1,10 +1,10 @@
 require('dotenv').config();
 import {Response } from 'express';
-const crypto = require('crypto');
-const bcrypt = require("bcryptjs");
+import crypto = require('crypto');
+import bcrypt = require("bcryptjs");
 import * as nodemailer from 'nodemailer';
 const OTPmodel = require("../models/otp");
-const jwt = require("jsonwebtoken");
+import jwt = require("jsonwebtoken");
 
 function encryptAmount(amount:Number):String {
     let iv = crypto.randomBytes(16);
@@ -177,7 +177,7 @@ function usernameToEmail(inval:string){
     return inval;
 }
 
-module.exports = {
+export{
     encryptAmount,
     decryptAmount,
     sendOTPMail,

@@ -5,7 +5,6 @@ const busModel = require('../models/bus');
 const queueModel = require('../models/queue');
 //
 const bookingscheduler=require('../schedulers/bookscheduler');
-import redisx from "../config/redis"
 
 
 //RESET ROUTES

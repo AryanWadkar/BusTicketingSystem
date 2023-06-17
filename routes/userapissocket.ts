@@ -1,11 +1,7 @@
-import * as mongoose from 'mongoose';
-import { Response,Request } from 'express';
-import e = require('express');
 const globalService = require('../services/globalservices');
 require('dotenv').config();
 const TicketModel = require('../models/ticket');
-const jwt = require("jsonwebtoken");
-const userService = require('../services/userservices');
+import * as userService from '../services/userservices';
 const UserModel = require("../models/user");
 const TransactionModel = require("../models/transaction");
 

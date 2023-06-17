@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken");
+import jwt = require("jsonwebtoken");
 require('dotenv').config();
 import { Request, Response } from 'express';
 import { Socket } from "socket.io";
-const cacheService = require('./cacheservices');
+import * as cacheService from './cacheservices';
 
 
 async function jwtAuth(authKey:String,purpose:String): Promise<object>{
@@ -13,6 +13,7 @@ async function jwtAuth(authKey:String,purpose:String): Promise<object>{
         {
             if(purpose=="ops")
             {
+                
                 const res = await cacheService.redisOperateLat(data['email'],data['lat']);
                 return {"status":res['status'],message:res['message'],data:data};
             }else{
@@ -132,7 +133,7 @@ async function authenticateOps(socket: Socket,next,error:string,route:string){
     }
 }
 
-module.exports = {
+export{
     jwtVerifyHTTP,
     jwtVerifySocket,
     jwtAuth,
