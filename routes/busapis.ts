@@ -7,54 +7,53 @@ const globalService = require('../services/globalservices');
 const BusService=require('../services/busservices');
 
 function busData(socket,io){
-    socket.on('get/busold',async (data)=>{
-        //await globalservice.verifySocket(socket,()=>{},false); restore later
-        const tickets = await TicketModel.find();
-        const buses = tickets.reduce((acc, ticket) => {
-            if (ticket.email === '') {
-              const existingBus = acc.find(bus => 
-                bus.time.getHours()===ticket.startTime.getHours() && bus.time.getMinutes()===ticket.startTime.getMinutes());
-              if (existingBus) {
-                existingBus.count++;
-              } else {
-                acc.push({ time:ticket.startTime, count: 1,src:ticket.source,dest:ticket.destination });
-              }
-            }
-            return acc;
-          }, []);
-        socket.emit('Bus_data',{
-            'data':buses
-        });
-        const filter = { operationType: 'insert' };
-        const changeStream = TicketModel.watch({fullDocument: 'updateLookup' });
-        changeStream.on('change', (change) => {
-            console.log('Change:', change.fullDocument);
-            const ticket = change.fullDocument;
-            try{
-                const bus = buses.find(bus=>bus.time.getHours()===ticket.startTime.getHours() && bus.time.getMinutes()===ticket.startTime.getMinutes());
-                if(bus)
-                {
-                    if(ticket.email==="" && ticket.txnid==="")
-                    {
-                        bus.count++;
-                    }else{
-                        bus.count--;
-                    }
-                }else{
-                    buses.push({ time:ticket.startTime, count: 1,src:ticket.source,dest:ticket.destination });
-                }
-                //add jwt verification again
-                io.emit('Bus_data',{
-                    'data':buses
-                });
-            }catch(err)
-            {
-                console.log(err);
-            }
+    // socket.on('get/busold',async (data)=>{
+    //     //await globalservice.verifySocket(socket,()=>{},false); restore later
+    //     const tickets = await TicketModel.find();
+    //     const buses = tickets.reduce((acc, ticket) => {
+    //         if (ticket.email === '') {
+    //           const existingBus = acc.find(bus => 
+    //             bus.time.getHours()===ticket.startTime.getHours() && bus.time.getMinutes()===ticket.startTime.getMinutes());
+    //           if (existingBus) {
+    //             existingBus.count++;
+    //           } else {
+    //             acc.push({ time:ticket.startTime, count: 1,src:ticket.source,dest:ticket.destination });
+    //           }
+    //         }
+    //         return acc;
+    //       }, []);
+    //     socket.emit('Bus_data',{
+    //         'data':buses
+    //     });
+    //     const filter = { operationType: 'insert' };
+    //     const changeStream = TicketModel.watch({fullDocument: 'updateLookup' });
+    //     changeStream.on('change', (change) => {
+    //         //console.log('Change:', change.fullDocument);
+    //         const ticket = change.fullDocument;
+    //         try{
+    //             const bus = buses.find(bus=>bus.time.getHours()===ticket.startTime.getHours() && bus.time.getMinutes()===ticket.startTime.getMinutes());
+    //             if(bus)
+    //             {
+    //                 if(ticket.email==="" && ticket.txnid==="")
+    //                 {
+    //                     bus.count++;
+    //                 }else{
+    //                     bus.count--;
+    //                 }
+    //             }else{
+    //                 buses.push({ time:ticket.startTime, count: 1,src:ticket.source,dest:ticket.destination });
+    //             }
+    //             //add jwt verification again
+    //             io.emit('Bus_data',{
+    //                 'data':buses
+    //             });
+    //         }catch(err)
+    //         {
+    //             console.log("BUS UPDATE ERROR",err);
+    //         }
 
-          });
-    });
-
+    //       });
+    // });
 
     socket.on('get/bus',async (datain)=>{
         const thisnext=async(data)=>{
@@ -65,11 +64,11 @@ function busData(socket,io){
             const filter = { operationType: 'insert' };
             const changeStream = BusModel.watch({fullDocument: 'updateLookup' });
             changeStream.on('change', async(change) => {
-                console.log('Change:', change.fullDocument);
+                //console.log('Change:', change.fullDocument);
                 const updatedbus = change.fullDocument;
                 try{
                     const newnext = async(data)=>{  
-                        console.log(updatedbus);                  
+                        //console.log(updatedbus);                  
                         let index = buses.findIndex(function (bus,i) {
                             return String(bus._id)===String(updatedbus._id)});
                         if(index!==-1)
@@ -85,7 +84,7 @@ function busData(socket,io){
     
                 }catch(err)
                 {
-                    console.log(err);
+                    console.log("BUS UPDATE ERROR",err);
                     socket.emit('Bus_Error',{
                         'data':String(err)
                     });

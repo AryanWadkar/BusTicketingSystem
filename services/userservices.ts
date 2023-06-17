@@ -105,13 +105,11 @@ async function sendOTPMail (type:String,tosend:String,res:Response){
 }
 
 async function verifyOTP(res:Response,unhashedOTP:String,purpose:String,emailID:String,onsuccess?:()=>void){
-    console.log(emailID);
     await OTPmodel.find({
         email:emailID
     }).then(async (data)=>{
         const expiry = data[data.length-1].expiresAt;
         const hashedotp = data[data.length-1].otp;
-        console.log(expiry.type);
         if(expiry < Date.now())
         {
             await OTPmodel.collection.deleteMany({email:emailID});

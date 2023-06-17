@@ -12,7 +12,7 @@ const redisClient = createClient({
 
 async function InitRedisServer(){
 
-    redisClient.on('error', err => console.log('Redis Client Error', err));
+    redisClient.on('error', err => console.log('Redis Client Error'));
 
     redisClient.on('connect', err => console.log('redis is connected!'));
     

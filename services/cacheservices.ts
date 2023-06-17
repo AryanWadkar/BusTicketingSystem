@@ -5,35 +5,26 @@ const flatCache = require('flat-cache');
 import redisInstance from "../config/redis"
 
 const redisOperateLat = async (email,lat): Promise<object>=>{
-    try{
-        const redislat = await redisInstance.redisClient.get(email).catch((err)=>{
-            console.log(err,'caught at diskOperateLat');
-            return {"status":false,"message":"Error validating!"};
-        });
-        if(redislat)
-        {
-            if(redislat<lat)
-            {
-                redisInstance.redisClient.set(email,lat);
-                console.log("updating");
-                return {"status":true,"message":"Updated and Validated!"};
-            }else if(redislat==lat)
-            {
-                console.log("matched");
-                return {"status":true,"message":"Validated!"};
-            }
-            else{
-                console.log("faliure");
-                return {"status":false,"message":"Invalid Token"};
-            }
-        }else{
-            redisInstance.redisClient.set(email,lat);
-            console.log("setting");
-            return {"status":true,"message":"Saved Validated!"};
-        }
-    }catch(err){
-        console.log(err,'caught');
+    const redislat = await redisInstance.redisClient.get(email).catch((err)=>{
+        console.log(err,'caught at redisOperateLat');
         return {"status":false,"message":"Error validating!"};
+    });
+    if(redislat)
+    {
+        if(redislat<lat)
+        {
+            redisInstance.redisClient.set(email,lat);
+            return {"status":true,"message":"Updated and Validated!"};
+        }else if(redislat==lat)
+        {
+            return {"status":true,"message":"Validated!"};
+        }
+        else{
+            return {"status":false,"message":"Invalid Token"};
+        }
+    }else{
+        redisInstance.redisClient.set(email,lat);
+        return {"status":true,"message":"Saved Validated!"};
     }
 }
 

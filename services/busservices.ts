@@ -99,7 +99,7 @@ async function bookTicket(email:String,ticketsrc:String,ticketdest:String,ticket
 }
 
 async function sendQueueMail(tosend:String,processresult:object,orignalrequestdata:object){
-    console.log('mailing started');
+
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -250,11 +250,9 @@ async function sendQueueMail(tosend:String,processresult:object,orignalrequestda
       };
         
     transporter.sendMail(mailOptions, function(err, data) {});
-    console.log('mailed');
 }
 
 async function sendTicketMail(tosend:String,processresult:String,orignalrequestdata:object){
-    console.log('mailing started');
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -316,7 +314,6 @@ async function sendTicketMail(tosend:String,processresult:String,orignalrequestd
       };
         
     transporter.sendMail(mailOptions, function(err, data) {});
-    console.log('mailed');
 }
 
 module.exports={bookTicket,sendQueueMail,sendTicketMail};
