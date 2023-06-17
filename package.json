@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf ./build && tsc",
-    "start": "npm run build && node --max-old-space-size=128 ./build/index.js",
+    "start": "npm run build && node ./build/index.js",
     "clean": "rimraf ./node_modules", 
     "reinstall": "npm run clean && npm install", 
     "rebuild": "npm run clean && npm install && npm run build"
