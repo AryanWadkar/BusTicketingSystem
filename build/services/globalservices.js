@@ -3,12 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const jwt = require("jsonwebtoken");
 require('dotenv').config();
 const cacheService = require('./cacheservices');
-const jwtAuth = async (authKey, purpose) => {
+async function jwtAuth(authKey, purpose) {
     const data = jwt.verify(authKey, process.env.JWT_KEY);
     if (data) {
         if (data["purpose"] === purpose) {
             if (purpose == "ops") {
-                const res = await cacheService.diskOperateLat(data['email'], data['lat']);
+                const res = await cacheService.redisOperateLat(data['email'], data['lat']);
                 return { "status": res['status'], message: res['message'], data: data };
             }
             else {
@@ -22,7 +22,7 @@ const jwtAuth = async (authKey, purpose) => {
     else {
         return { "status": false, "message": "Invalid token signature!" };
     }
-};
+}
 async function jwtVerifyHTTP(req, res, purpose) {
     const authHeader = req.headers.authorization;
     if (authHeader) {
@@ -121,6 +121,12 @@ async function authenticateOps(socket, next, error, route) {
         });
     }
 }
+module.exports = {
+    jwtVerifyHTTP,
+    jwtVerifySocket,
+    jwtAuth,
+    authenticateOps
+};
 // const gethandm = (ticket)=>{
 //     const date = ticket.startTime;
 //     const formattedDate = date.toLocaleString('en-US', {timeZone:'Asia/Kolkata'});
@@ -129,10 +135,4 @@ async function authenticateOps(socket, next, error, route) {
 //     const minute = dateObj.getMinutes();
 //     return {hour,minute};
 // }
-module.exports = {
-    jwtVerifyHTTP,
-    jwtVerifySocket,
-    jwtAuth,
-    authenticateOps
-};
 //# sourceMappingURL=globalservices.js.map

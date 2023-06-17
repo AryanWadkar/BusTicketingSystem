@@ -13,7 +13,7 @@ async function jwtAuth(authKey:String,purpose:String): Promise<object>{
         {
             if(purpose=="ops")
             {
-                const res = await cacheService.diskOperateLat(data['email'],data['lat']);
+                const res = await cacheService.redisOperateLat(data['email'],data['lat']);
                 return {"status":res['status'],message:res['message'],data:data};
             }else{
                 return {"status":true,message:"Verfied successfully",data:data};

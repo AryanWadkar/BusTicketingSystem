@@ -14,10 +14,12 @@ const bus = require('./routes/busapis');
 const dev = require('./routes/dev');
 const usersocket = require('./routes/userapissocket');
 const scheduler = require('./schedulers/clearscheduler');
-
+import redis from "./config/redis";
 
 //Initialization and vars
 InitMongoServer();
+
+redis.InitRedisServer();
 
 scheduler.clearticket();
 

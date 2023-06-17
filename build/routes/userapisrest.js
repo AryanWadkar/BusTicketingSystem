@@ -114,7 +114,7 @@ router.post("/registerUser", validate({ body: validJson.registrationSchema }), a
                                 loginTime: date
                             }
                         }).then(async (data) => {
-                            const saving = await cacheService.diskOperateLat(email, date);
+                            const saving = await cacheService.redisOperateLat(email, date);
                             if (saving['status'] === true) {
                                 res.status(200).json({
                                     "status": true,
@@ -210,7 +210,7 @@ router.post("/loginUser", validate({ body: validJson.loginSchema }), async (req,
                         });
                     }
                     else {
-                        const saving = await cacheService.diskOperateLat(email, date);
+                        const saving = await cacheService.redisOperateLat(email, date);
                         if (saving['status'] === true) {
                             res.status(200).json({
                                 "status": true,

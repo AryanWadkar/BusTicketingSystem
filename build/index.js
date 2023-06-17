@@ -14,8 +14,10 @@ const bus = require('./routes/busapis');
 const dev = require('./routes/dev');
 const usersocket = require('./routes/userapissocket');
 const scheduler = require('./schedulers/clearscheduler');
+const redis_1 = require("./config/redis");
 //Initialization and vars
 InitMongoServer();
+redis_1.default.InitRedisServer();
 scheduler.clearticket();
 var corsOptions = {
     origin: "http://localhost:8081"
@@ -37,6 +39,7 @@ const io = new socket_io_1.Server(server, { /* options */});
 io.use(globalservices.jwtVerifySocket).on("connection", (socket) => {
     bus.busData(socket, io);
     bus.bookTicket(socket, io);
+    bus.joinQueue(socket, io);
     usersocket.getWallet(socket, io);
     usersocket.getBookings(socket, io);
 });

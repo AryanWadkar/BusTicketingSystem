@@ -139,9 +139,9 @@ async function sendQueueMail(tosend:String,processresult:object,orignalrequestda
                 </td>
             </tr>
             <tr>
-                <td style="width: 31.723%;">${processresult['source']}</td>
-                <td style="width: 33.3333%;">${processresult['destination']}</td>
-                <td style="width: 34.7385%;">${processresult['startTime']}</td>
+                <td style="width: 31.723%;"><div data-empty="true" style="text-align: center;">${processresult['source']}</div></td>
+                <td style="width: 33.3333%;"><div data-empty="true" style="text-align: center;">${processresult['destination']}</div></td>
+                <td style="width: 34.7385%;"><div data-empty="true" style="text-align: center;">${processresult['startTime']}</div></td>
             </tr>
         </tbody>
     </table>

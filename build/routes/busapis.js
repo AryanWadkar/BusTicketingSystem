@@ -1,15 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose = require("mongoose");
-const globalservice = require('../services/globalservices');
 require('dotenv').config();
 const TicketModel = require('../models/ticket');
-const jwt = require("jsonwebtoken");
-const userservice = require('../services/userservices');
-const UserModel = require("../models/user");
-const TransactionModel = require("../models/transaction");
 const BusModel = require("../models/bus");
+const QueueModel = require("../models/queue");
 const globalService = require('../services/globalservices');
+const BusService = require('../services/busservices');
 function busData(socket, io) {
     socket.on('get/busold', async (data) => {
         //await globalservice.verifySocket(socket,()=>{},false); restore later
@@ -126,85 +122,67 @@ function busData(socket, io) {
 function bookTicket(socket, io) {
     socket.on('post/book', async (datain) => {
         const thisnext = async (data) => {
-            const session = await mongoose.startSession();
-            session.startTransaction();
             const email = data['email'];
-            const user = await UserModel.findOne({
-                email: email
-            });
-            const walletenc = user.wallet;
-            const ticketex = await TicketModel.find({
-                email: email,
-                source: datain['source'],
-                destination: datain['destination'],
-                startTime: datain['startTime'],
-            });
-            if (ticketex.length > 0) {
-                socket.emit('Booking_Error', {
-                    "data": "Already booked!"
+            let src = datain['source'];
+            let dest = datain['destination'];
+            let time = datain['startTime'];
+            const reqtime = new Date(Date.now()).toISOString();
+            const bookingreqdetail = { 'reqtime': reqtime, 'source': src, 'dest': dest, 'time': time };
+            async function bookingsuccess(bookingdata) {
+                socket.emit('Booking_Success', {
+                    "data": bookingdata
                 });
+                BusService.sendTicketMail(email, 'Success', bookingreqdetail);
             }
-            else {
-                const ticket = await TicketModel.findOne({
-                    source: datain['source'],
-                    destination: datain['destination'],
-                    startTime: datain['startTime'],
-                    email: { $eq: "" },
-                    txnid: { $eq: "" }
-                }).session(session);
-                if (!ticket) {
-                    socket.emit('Booking_Error', {
-                        "data": "No tickets found!"
-                    });
-                }
-                else {
-                    try {
-                        let amt = userservice.decryptAmount(walletenc);
-                        if (amt < 20) {
-                            socket.emit('Booking_Error', {
-                                "data": "Insufficient balance!"
-                            });
-                        }
-                        else {
-                            amt = amt - 20;
-                            const encamt = userservice.encryptAmount(amt);
-                            await UserModel.updateOne({ email: email }, { $set: { wallet: encamt } }, { session }).session(session);
-                            const transaction = new TransactionModel({
-                                amount: 20,
-                                email: email,
-                                date: new Date(),
-                                type: '-'
-                            });
-                            const newtransaction = await transaction.save({ session });
-                            await TicketModel.updateOne({ _id: ticket._id }, { $set: { txnid: newtransaction._id, email: email } }, { session }).session(session);
-                            await BusModel.updateOne({
-                                source: datain['source'],
-                                destination: datain['destination'],
-                                startTime: datain['startTime'],
-                            }, { $inc: { capacity: -1 } }, { session }).session(session);
-                            await session.commitTransaction();
-                            socket.emit('Booking_Success', {
-                                "data": "Booked successfully!"
-                            });
-                        }
-                    }
-                    catch (e) {
-                        await session.abortTransaction();
-                        socket.emit('Booking_Error', {
-                            "data": String(e)
-                        });
-                    }
-                    finally {
-                        session.endSession();
-                    }
-                }
+            function bookingfaliure(errormessage) {
+                socket.emit('Booking_Error', {
+                    "data": errormessage
+                });
+                BusService.sendTicketMail(email, errormessage, bookingreqdetail);
             }
+            await BusService.bookTicket(email, src, dest, time, bookingfaliure, bookingsuccess);
         };
         await globalService.authenticateOps(socket, thisnext, 'Booking_Error', 'post/book');
     });
 }
+function joinQueue(socket, io) {
+    socket.on('post/queue', async (datain) => {
+        const thisnext = async (data) => {
+            const email = data['email'];
+            const requestedorder = datain['q'];
+            const queueobjs = await QueueModel.find({
+                email: email
+            });
+            if (queueobjs.length > 0) {
+                socket.emit('Queue_Error', {
+                    "data": "Already in queue!"
+                });
+            }
+            else {
+                const newQueueobj = QueueModel({
+                    email: email,
+                    q: requestedorder,
+                    initTime: Date.now()
+                });
+                await newQueueobj.save().then((data) => {
+                    socket.emit('Queue_Success', {
+                        "data": "Added to queue successfully",
+                        "qid": data
+                    });
+                }).catch((e) => {
+                    socket.emit('Queue_Error', {
+                        "data": "Error adding to queue",
+                        "message": String(e)
+                    });
+                });
+            }
+        };
+        await globalService.authenticateOps(socket, thisnext, 'Queue_Error', 'post/queue');
+    });
+}
 module.exports = {
     busData,
-    bookTicket
+    bookTicket,
+    joinQueue
 };
 //# sourceMappingURL=busapis.js.map

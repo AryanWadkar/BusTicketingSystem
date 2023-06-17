@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require('dotenv').config();
-const Usermodel = require("../models/user");
 const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
@@ -9,7 +8,7 @@ const OTPmodel = require("../models/otp");
 const jwt = require("jsonwebtoken");
 function encryptAmount(amount) {
     let iv = crypto.randomBytes(16);
-    let key = crypto.createHash('sha256').update(String(process.env.ENC_KEY)).digest('base64').substr(0, 32);
+    let key = crypto.createHash('sha256').update(String(process.env.WALLET_ENC_KEY)).digest('base64').substr(0, 32);
     let cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     let encrypted = cipher.update(amount.toString());
     encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -19,14 +18,14 @@ function decryptAmount(encryptedAmount) {
     let textParts = encryptedAmount.split(':');
     let iv = Buffer.from(textParts.shift(), 'hex');
     let encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    let key = crypto.createHash('sha256').update(String(process.env.ENC_KEY)).digest('base64').substr(0, 32);
+    let key = crypto.createHash('sha256').update(String(process.env.WALLET_ENC_KEY)).digest('base64').substr(0, 32);
     let decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     let amt = decrypted.toString();
     return parseFloat(amt);
 }
-const sendOTPMail = async (type, tosend, res) => {
+async function sendOTPMail(type, tosend, res) {
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -95,8 +94,8 @@ const sendOTPMail = async (type, tosend, res) => {
             "data": err
         });
     });
-};
-const verifyOTP = async (res, unhashedOTP, purpose, emailID, onsuccess) => {
+}
+async function verifyOTP(res, unhashedOTP, purpose, emailID, onsuccess) {
     console.log(emailID);
     await OTPmodel.find({
         email: emailID
@@ -153,7 +152,7 @@ const verifyOTP = async (res, unhashedOTP, purpose, emailID, onsuccess) => {
             "data": String(error)
         });
     });
-};
+}
 function usernameToEmail(inval) {
     inval = inval.toLowerCase();
     inval = inval.replaceAll(".", "");

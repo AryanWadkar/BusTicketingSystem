@@ -129,7 +129,7 @@ async (req: Request,res: Response)=>{
                                     loginTime:date
                                 }
                             }).then(async (data)=>{
-                                const saving = await cacheService.diskOperateLat(email,date);
+                                const saving = await cacheService.redisOperateLat(email,date);
                                 if(saving['status']===true)
                                 {
                                     res.status(200).json({
@@ -237,7 +237,7 @@ async (req: Request,res: Response)=>{
                             "data":String(err)
                         });
                     }else{
-                        const saving = await cacheService.diskOperateLat(email,date);
+                        const saving = await cacheService.redisOperateLat(email,date);
                         if(saving['status']===true)
                         {
                             res.status(200).json({
