@@ -51,7 +51,7 @@ const processqueue= async ()=>{
 
 //TODO: Set time for this cron job
 const processQueueCron = ()=>{
-    const job = new CronJobx('0 0 0 * * ?', processqueue, null, true, 'Asia/Kolkata');
+    const job = new CronJobx('0 0 * * *', processqueue, null, true, 'Asia/Kolkata');
     job.start();
 };
 

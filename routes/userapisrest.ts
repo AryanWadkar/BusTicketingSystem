@@ -3,14 +3,14 @@ import { Response,Request } from 'express';
 import { Validator} from "express-json-validator-middleware";
 require('dotenv').config();
 const validJson = require("../config/schema");
-import bcrypt = require("bcryptjs");
-import jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const router = express.Router();
 const userModel = require("../models/user");
-import * as globalService from '../services/globalservices';
+const globalService = require('../services/globalservices');
 const { validate } = new Validator({});
-import * as userService from '../services/userservices';
-import * as cacheService from '../services/cacheservices';
+const userService = require('../services/userservices');
+const cacheService = require('../services/cacheservices');
 
 router.post("/usercheck", validate({ body: validJson.usernameSchema }),   
 async (req: Request,res: Response)=>{

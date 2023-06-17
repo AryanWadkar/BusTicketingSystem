@@ -3,7 +3,7 @@ const ticketModel = require('../models/ticket');
 const queueModel = require('../models/queue');
 
 const clearticket = ()=>{
-    const job = new CronJob('0 0 0 * * ?', async() =>{
+    const job = new CronJob('0 0 * * *', async() =>{
         const data = await ticketModel.updateMany({},{
             email: "",
             txnid:"",
@@ -14,7 +14,7 @@ const clearticket = ()=>{
 };
 
 const clearqueue = ()=>{
-    const job = new CronJob('0 0 0 * * ?', async() =>{
+    const job = new CronJob('0 0 * * *', async() =>{
         const data = await queueModel.deleteMany({});
     }, null, true, 'Asia/Kolkata');
     

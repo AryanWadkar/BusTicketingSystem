@@ -1,48 +1,31 @@
+import jwt = require("jsonwebtoken");
 require('dotenv').config();
 const userModel = require("../models/user");
-import flatCache = require('flat-cache');
-import {createClient } from 'redis';
+const flatCache = require('flat-cache');
+import redisInstance from "../config/redis"
 
 const redisOperateLat = async (email,lat): Promise<object>=>{
-    const redisClient = createClient({
-        password: process.env.REDIS_PASS,
-        socket: {
-            host: process.env.REDIS_HOST,
-            port:19141 //+ process.env.REDIS_PORT //Converts string to number
-        }
-    });
-    
-    redisClient.on('error', err => console.log('Redis Client Error'));
-
-    redisClient.on('connect', err => console.log('redis is connected!'));
-    
-    await redisClient.connect();
-
-    const redislat = await redisClient.get(email).catch(async (err)=>{
+    const redislat = await redisInstance.redisClient.get(email).catch((err)=>{
         console.log(err,'caught at redisOperateLat');
-        await redisClient.disconnect();
         return {"status":false,"message":"Error validating!"};
     });
-    let response={};
     if(redislat)
     {
         if(redislat<lat)
         {
-            redisClient.set(email,lat);
-            response= {"status":true,"message":"Updated and Validated!"};
+            redisInstance.redisClient.set(email,lat);
+            return {"status":true,"message":"Updated and Validated!"};
         }else if(redislat==lat)
         {
-            response={"status":true,"message":"Validated!"};
+            return {"status":true,"message":"Validated!"};
         }
         else{
-            response={"status":false,"message":"Invalid Token"};
+            return {"status":false,"message":"Invalid Token"};
         }
     }else{
-        redisClient.set(email,lat);
-        response={"status":true,"message":"Saved Validated!"};
+        redisInstance.redisClient.set(email,lat);
+        return {"status":true,"message":"Saved Validated!"};
     }
-    await redisClient.disconnect();
-    return response;
 }
 
 const mongoCheckLat = async(email:String,lat:String):Promise<object>=>{
@@ -104,7 +87,7 @@ const diskOperateLat = async (email:String,lat:String): Promise<object>=>{
     }
 }
 
-export {
+module.exports={
     redisOperateLat,
     mongoCheckLat,
     mongoSetLat,

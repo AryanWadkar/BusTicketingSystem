@@ -1,8 +1,10 @@
+import * as mongoose from 'mongoose';
 require('dotenv').config();
+const TicketModel = require('../models/ticket');
 const BusModel = require("../models/bus");
 const QueueModel = require("../models/queue");
-import * as globalService from'../services/globalservices';
-import * as BusService from '../services/busservices';
+const globalService = require('../services/globalservices');
+const BusService=require('../services/busservices');
 
 function busData(socket,io){
     // socket.on('get/busold',async (data)=>{

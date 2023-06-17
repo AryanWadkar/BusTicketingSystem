@@ -13,13 +13,15 @@ const globalservices = require('./services/globalservices');
 const bus = require('./routes/busapis');
 const dev = require('./routes/dev');
 const usersocket = require('./routes/userapissocket');
-//const scheduler = require('./schedulers/clearscheduler');
+const scheduler = require('./schedulers/clearscheduler');
 import redis from "./config/redis";
 
 //Initialization and vars
 InitMongoServer();
 
 redis.InitRedisServer();
+
+scheduler.clearticket();
 
 var corsOptions = {
     origin: "http://localhost:8081"
@@ -28,8 +30,6 @@ var corsOptions = {
 const PORT = process.env.PORT || 8080;
 
 // Server methods
-
-
 app.use(cors(corsOptions));
   
 app.use(express.json());
