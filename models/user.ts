@@ -11,7 +11,7 @@ const UserSchema = mongoose.Schema({
   password: {
     type: String
   },
-  rollno:{
+  rollNo:{
     type:String
   },
   regStatus:{
@@ -25,10 +25,6 @@ const UserSchema = mongoose.Schema({
   wallet:{
     type:String,
     default:""
-  },
-  loginTime:{
-    type:Date,
-    default:Date.now()
   }
 });
 

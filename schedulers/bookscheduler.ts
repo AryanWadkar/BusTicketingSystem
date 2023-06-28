@@ -1,24 +1,24 @@
-const TicketModel = require('../models/ticket');
 const QueueModel = require('../models/queue');
 const BusService = require('../services/busservices');
 const CronJobx = require('cron').CronJob;
 
 const processqueue= async ()=>{
     
-    const queueobjs = await QueueModel.find({booking:{},txnid:""}).sort( { initTime: 1 } );
+    const queueobjs = await QueueModel.find({booking:{},txnId:""}).sort( { initTime: 1 } );
     let noofjobs:number=queueobjs.length;
     let x:number=0;
     while(x<noofjobs)
     {
         const queuereq=queueobjs[x];
-        const preferences=queuereq['q'];
+        const preferences=queuereq['preferences'];
         const email=queuereq['email'];
         const docid=queuereq['id'];
         const madeat=queuereq['initTime'];
         let retry:boolean = true;
         async function bookingsuccess(bookingdata:{}){
             retry=false;
-            await QueueModel.findOneAndUpdate({_id:docid},{booking:bookingdata,txnid:bookingdata['txnid']});
+            //TODO: Figure out what if this update fails
+            await QueueModel.updateOne({_id:docid},{booking:bookingdata,txnId:bookingdata['txnId']});
             BusService.sendQueueMail(email,{...bookingdata,'message':'Success'},{'madeat':madeat,'preferences':preferences});
         }
 

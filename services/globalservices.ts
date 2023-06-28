@@ -58,7 +58,7 @@ async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<ob
     
 }
 
-async function jwtVerifySocket(socket: Socket,next){
+async function jwtVerifySocket(socket: Socket,next:Function){
     console.log('Validating socket connection');
     const authkey:string = socket.client.request.headers.authorization;
     try{
@@ -96,14 +96,14 @@ async function jwtVerifySocket(socket: Socket,next){
 
 }
 
-async function authenticateOps(socket: Socket,next,error:string,route:string){
+async function authenticateOps(socket: Socket,next:Function,error:string,route:string,access:string){
     try{
         const authkey:string = socket.client.request.headers.authorization;
         const res = await jwtAuth(authkey,"ops");
         if(res['status']===true)
         {
             const data=res['data'];
-            if(data)
+            if(data && data['access']==access)
             {
                 try{
                     next(data);

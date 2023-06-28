@@ -3,10 +3,9 @@ const router = express.Router();
 const ticketModel = require('../models/ticket');
 const busModel = require('../models/bus');
 const queueModel = require('../models/queue');
+const userService = require('../services/userservices');
 //
 const bookingscheduler=require('../schedulers/bookscheduler');
-import redisx from "../config/redis"
-
 
 //RESET ROUTES
 router.post("/resettickets",async(req,res)=>{
@@ -23,26 +22,37 @@ router.post("/resettickets",async(req,res)=>{
     },
     {
         email: "",
-        txnid:"",
+        txnId:"",
     }
     );
     res.status(200).json({
         'status':true,
         'data':data
     });
-})
+});
 
 router.get("/resetalltickets",async(req,res)=>{
     const data = await ticketModel.updateMany({},{
         email: "",
-        txnid:"",
+        txnId:"",
     });
     res.status(200).json({
         'status':true,
         'data':data
     });
-})
+});
 
+router.post("/resetConductorPass",async(req,res)=>{
+    try{
+        const newpass:string=res['newpass'];
+        await userService.resetPass("busutilityticketingsystem@gmail.com",newpass);
+    }catch(e){
+        res.status(200).json({
+            'status':true,
+        });
+    }
+
+});
 
 //ADD ROUTES
 router.post("/addbus",async(req,res)=>{
@@ -65,12 +75,13 @@ router.post("/addbus",async(req,res)=>{
             'data':'bus already exists'
         })
     }else{
+        const stops=src=="Insti"?["Insti","Fresh","Sadar"]:["Sadar","Fresh","Insti"];
         const newBus = new busModel({
             source: src,
             destination: dest,
             startTime:date,
             capacity:capacity,
-            stops:"Insti-Fresh-Sadar",
+            stops:stops,
             days:["Mon","Tue","Wed","Thu","Fri"]
         });
         await newBus.save();
@@ -88,7 +99,8 @@ router.post("/addbus",async(req,res)=>{
                 destination: dest,
                 startTime:date,
                 email: "",
-                txnid:"",
+                txnId:"",
+                busId:newBus._id
             });
             await newticket.save();
         }
@@ -97,8 +109,9 @@ router.post("/addbus",async(req,res)=>{
             "data":newBus
         });
     }
-})
+});
 
+//TODO: Figure out register conductor
 
 //GET ROUTES
 router.get("/getallbus",async(req,res)=>{

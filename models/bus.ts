@@ -19,12 +19,17 @@ const Bus = new mongoose.Schema({
     required:true
   },
   stops:{
-    type:String, //insti-fresh-sadar etc 
+    type:[String],
     required:true
   },
   days:{
     type:[String],
     required:true
+  },
+  sessionStart:{
+    type:Boolean,
+    required:true,
+    default:false
   }
 });
 

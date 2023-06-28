@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 
 const QueueItem = new mongoose.Schema({
-  txnid: {
+  txnId: {
     type: String,
     default:""
    },
@@ -14,7 +14,7 @@ const QueueItem = new mongoose.Schema({
     type:Date,
     default:Date.now()
   },
-  q: {
+  preferences: {
     type: [{
       type: mongoose.Schema.Types.Mixed
     }]
@@ -25,5 +25,4 @@ const QueueItem = new mongoose.Schema({
   }
 });
 
-//TODO: Give better names to fields here
 module.exports = mongoose.model("Queue", QueueItem);

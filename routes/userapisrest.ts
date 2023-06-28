@@ -79,7 +79,7 @@ async (req: Request,res: Response)=>{
         try{    
             let name:string=req.body["name"];
             let pass:string = req.body["password"];
-            let rollno:string = req.body["rollno"];
+            let rollno:string = req.body["rollNo"];
             let email:String = data["email"];
             const user = await userModel.findOne({
                 email:email,
@@ -100,8 +100,9 @@ async (req: Request,res: Response)=>{
                     "email":email,
                     "purpose":"ops",
                     "name":name,
-                    "rollno":rollno,
+                    "rollNo":rollno,
                     "lat":date,
+                    "access":"User"
                 };
         
                 jwt.sign(
@@ -123,10 +124,9 @@ async (req: Request,res: Response)=>{
                                 $set:{
                                     regStatus:true,
                                     name:name,
-                                    rollno:rollno,
+                                    rollNo:rollno,
                                     password:hashpass,
                                     wallet:initWallet,
-                                    loginTime:date
                                 }
                             }).then(async (data)=>{
                                 const saving = await cacheService.redisOperateLat(email,date);
@@ -137,7 +137,7 @@ async (req: Request,res: Response)=>{
                                         "message":"Registered Successfully!",
                                         "data":{
                                             "name":name,
-                                            "rollno":rollno,
+                                            "rollNo":rollno,
                                             "email":email,
                                             "token":tokenx,
                                             "wallet":userService.decryptAmount(initWallet)
@@ -157,7 +157,7 @@ async (req: Request,res: Response)=>{
                                     $set:{
                                         regStatus:false,
                                         name:"",
-                                        rollno:"",
+                                        rollNo:"",
                                         password:"",
                                         wallet:""
                                     }
@@ -213,7 +213,7 @@ async (req: Request,res: Response)=>{
         
         if(validity)
         {
-            const rollno=user.rollno;
+            const rollno=user.rollNo;
             const name = user.name;
             const date = Date.now();
             const walletenc = user.wallet;
@@ -221,8 +221,9 @@ async (req: Request,res: Response)=>{
                 "email":email,
                 "purpose":"ops",
                 "name":name,
-                "rollno":rollno,
+                "rollNo":rollno,
                 "lat":date,
+                "access":"User"
             };
     
             jwt.sign(
@@ -245,7 +246,7 @@ async (req: Request,res: Response)=>{
                                 "message":"Logged in Successfully",
                                 "data":{
                                     "name":name,
-                                    "rollno":rollno,
+                                    "rollNo":rollno,
                                     "email":email,
                                     "token":tokenx,
                                     "wallet":userService.decryptAmount(walletenc)
@@ -332,50 +333,9 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
     let data = await globalService.jwtVerifyHTTP(req,res,'reset');
     if(data)
     {
-        try{    
-            let newpass:string=req.body["newpass"];
-            let email:string = data["email"];
-            let user = await userModel.find({
-                email:email
-            });
-            if(!user)
-            {
-                res.status(404).json({
-                    "status":false,
-                    "message":"Invalid reset request"
-                });
-            }else{
-                const saltrounds=10;
-                const hashpass = await bcrypt.hashSync(newpass,saltrounds);
-                await userModel.updateOne({
-                    email:email,
-                },{
-                    $set:{
-                        password:hashpass,
-                    }
-                }
-                ).then((data)=>{
-                    res.status(200).json({
-                        "status":true,
-                        "message":"Password reset successfully"
-                    });
-                }).catch((error)=>{
-                    res.status(500).json({
-                        "status":false,
-                        "message":"Error resetting password!",
-                        "data":String(error)
-                    });
-                });
-            }
-        
-        }catch(e){
-            console.log('/resetPassword',e);
-                res.status(400).json({
-                    "status":false,
-                    "message":"Invalid request",
-                    'data':String(e)
-                });
-            }
+        let newpass:string=req.body["newpass"];
+        let email:string = data["email"];
+        await userService.resetPass(email,newpass,req,res);
     }else{
         res.status(401).json({
             "status":false,

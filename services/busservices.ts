@@ -13,6 +13,7 @@ async function bookTicket(email:String,ticketsrc:String,ticketdest:String,ticket
                 email:email
             });
             const walletenc = user.wallet;
+            //TODO: Add a check to get bus document and check if its cnt>0 && sessionStart==false
             const ticketex = await TicketModel.find({
                 email:email,
                 source:ticketsrc,
@@ -29,7 +30,7 @@ async function bookTicket(email:String,ticketsrc:String,ticketdest:String,ticket
                       destination:ticketdest,
                       startTime:tickettime,
                       email: { $eq: "" },
-                      txnid:{ $eq: "" }
+                      txnId:{ $eq: "" }
                     }
                   ).session(session); 
                 if(!ticket)
@@ -65,7 +66,7 @@ async function bookTicket(email:String,ticketsrc:String,ticketdest:String,ticket
                             const newtransaction= await transaction.save({session});
                             await TicketModel.updateOne(
                                 { _id: ticket._id },
-                                { $set: { txnid: newtransaction._id,email:email } },
+                                { $set: { txnId: newtransaction._id,email:email } },
                                 { session }
                             ).session(session);
 
@@ -83,8 +84,8 @@ async function bookTicket(email:String,ticketsrc:String,ticketdest:String,ticket
                                 "source":ticketsrc,
                                 "destination":ticketdest,
                                 "startTime":tickettime,
-                                "ticket_id": ticket._id,
-                                "txnid": newtransaction._id
+                                "ticketId": ticket._id,
+                                "txnId": newtransaction._id
                             });
 
                         }

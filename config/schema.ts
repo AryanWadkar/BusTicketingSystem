@@ -21,11 +21,11 @@ const username_opt_Schema: AllowedSchema  = {
         type:"string"
       }
     },
-  };
+};
 
   const registrationSchema: AllowedSchema  = {
     type: "object",
-    required: ["name","password","rollno"],
+    required: ["name","password","rollNo"],
     properties: {
       username: {
         type: "string",
@@ -38,9 +38,9 @@ const username_opt_Schema: AllowedSchema  = {
         type: "string",
       }
     },
-  };
+};
 
-  const loginSchema: AllowedSchema  = {
+const loginSchema: AllowedSchema  = {
     type: "object",
     required: ["email","password"],
     properties: {
@@ -52,9 +52,9 @@ const username_opt_Schema: AllowedSchema  = {
         minLength:6
       },
     },
-  };
+};
 
-  const resetPassSchema: AllowedSchema  = {
+const resetPassSchema: AllowedSchema  = {
     type: "object",
     required: ["newpass"],
     properties: {
@@ -63,12 +63,12 @@ const username_opt_Schema: AllowedSchema  = {
         minLength:6
       },
     },
-  };
+};
 
-  module.exports={
+module.exports={
     usernameSchema,
     username_opt_Schema,
     registrationSchema,
     loginSchema,
     resetPassSchema
-  }
+}

@@ -17,9 +17,17 @@ const Ticket = new mongoose.Schema({
   email: {
     type: String,
   },
-  txnid:{
+  txnId:{
     type:String,
   },
+  busId:{
+    type:mongoose.Types.ObjectId,
+    required:true
+  },
+  verified:{
+    type:Boolean,
+    default:false
+  }
 });
 
 module.exports = mongoose.model("Ticket", Ticket);
