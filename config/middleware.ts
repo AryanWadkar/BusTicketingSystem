@@ -1,5 +1,7 @@
 
-import {ValidationError } from "express-json-validator-middleware";
+import {ValidateFunction, ValidationError } from "express-json-validator-middleware";
+import { Socket } from "socket.io";
+
 
 function validationErrorMiddleware(error, request, response, next) {
 	if (response.headersSent) {
@@ -20,6 +22,18 @@ function validationErrorMiddleware(error, request, response, next) {
 	next();
 }
 
+function socketValidationMiddleware(socket:Socket,datain:Object,validationfn,Event:string):boolean{
+
+	const isValid=validationfn(datain);
+	if(isValid){
+		return true;
+	}else{
+		socket.emit(Event,{"data":validationfn.errors});
+		return false;
+	}
+}
+
 module.exports={
-    validationErrorMiddleware
+    validationErrorMiddleware,
+	socketValidationMiddleware
 };

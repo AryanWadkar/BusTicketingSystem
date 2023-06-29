@@ -21,7 +21,7 @@ async function bookTicket(email:String,ticketsrc:String,ticketdest:String,ticket
                 sessionStart:false
             });
             if(!busExists){
-                err("No tickets found!");
+                err("No Valid Bus Found");
             }else{
                 const ticketex = await TicketModel.find({
                     email:email,
@@ -248,6 +248,9 @@ async function sendTicketMail(tosend:String,processresult:object,orignalrequestd
     break;
     case "Already Booked!":mailbody=`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
     <p><strong>The system detected a prexisting booking in your name in the same bus, you are allowed to book only 1 seat per bus.</strong></p>`;
+    break;
+    case "No Valid Bus Found":mailbody=`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
+    <p><strong>The Bus you requested to book a ticket in has either departed or is not running today, or isnt in our catalouge</strong></p>`;
     break;
     case "Success":mailbody=`    
     <p>Your booking request has been successfully executed, the ticket details are as follows:.</p>
