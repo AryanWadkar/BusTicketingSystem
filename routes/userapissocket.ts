@@ -108,14 +108,14 @@ function bookTicket(socket:Socket){
                 socket.emit('Booking_Success',{
                     "data":bookingdata
                 });
-                BusService.sendTicketMail(email,'Success',bookingreqdetail);
+                BusService.sendTicketMail(email,{...bookingdata,'message':'Success'},bookingreqdetail);
             }
 
             function bookingfaliure(errormessage:String){
                 socket.emit('Booking_Error',{
                     "data":errormessage
                 });
-                BusService.sendTicketMail(email,errormessage,bookingreqdetail);
+                BusService.sendTicketMail(email,{'message':errormessage},bookingreqdetail);
             }
 
             await BusService.bookTicket(email,src,dest,time,bookingfaliure,bookingsuccess);

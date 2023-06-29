@@ -18,6 +18,10 @@ const Bus = new mongoose.Schema({
     type:Number,
     required:true
   },
+  initialCapacity:{
+    type:Number,
+    required:true
+  },
   stops:{
     type:[String],
     required:true

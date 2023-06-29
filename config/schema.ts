@@ -23,7 +23,7 @@ const username_opt_Schema: AllowedSchema  = {
     },
 };
 
-  const registrationSchema: AllowedSchema  = {
+const registrationSchema: AllowedSchema  = {
     type: "object",
     required: ["name","password","rollNo"],
     properties: {
@@ -65,10 +65,45 @@ const resetPassSchema: AllowedSchema  = {
     },
 };
 
+const addBusSchema: AllowedSchema  = {
+  type: "object",
+  required: ["hrs","mins","src",'dest','capacity'],
+  properties: {
+      hrs: {
+      type: "number",
+    },
+      mins:{
+      type: "number",
+    },
+    src:{
+      type: "string",
+    },  
+    dest: {
+      type: "string",
+    },
+    capacity: {
+      type: "number",
+    },
+  },
+};
+
+const busIdReqSchema: AllowedSchema  = {
+  type: "object",
+  required: ["busId"],
+  properties: {
+    busId: {
+      type: ["string","integer"],
+      minLength:12
+    }
+  },
+};
+
 module.exports={
     usernameSchema,
     username_opt_Schema,
     registrationSchema,
     loginSchema,
-    resetPassSchema
+    resetPassSchema,
+    addBusSchema,
+    busIdReqSchema
 }

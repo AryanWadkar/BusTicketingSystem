@@ -8,7 +8,7 @@ const userModel = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cacheService = require('../services/cacheservices');
-const globalService = require('../services/globalservices');
+const userService = require('../services/userservices');
 
 router.post("/loginConductor",  validate({ body: validJson.loginSchema }),  
 async (req: Request,res: Response)=>{
@@ -199,5 +199,18 @@ async (req: Request,res: Response)=>{
 
 }
 );
+
+router.post("/resetConductorPass",async(req,res)=>{
+    //TODO: Add validation
+    try{
+        const newpass:string=res['newpass'];
+        await userService.resetPass("busutilityticketingsystem@gmail.com",newpass);
+    }catch(e){
+        res.status(200).json({
+            'status':true,
+        });
+    }
+
+});
 
 module.exports = router;
