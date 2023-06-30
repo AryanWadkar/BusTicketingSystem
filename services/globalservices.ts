@@ -66,13 +66,13 @@ async function jwtVerifySocket(socket: Socket,next:Function){
         if(res['status']===true)
         {
             console.log('Validated!');
-            socket.emit('Connection_Success',{
+            socket.emit('verify/connection',{
                 'status':true,
                 'message':'Connected!'
                 });
         }else{
           console.log('Invalid user!');
-          socket.emit('Connection_Error',{
+          socket.emit('verify/connection',{
             'status':false,
             'message':'Invalid token!',
             'data':res['message']
@@ -82,7 +82,7 @@ async function jwtVerifySocket(socket: Socket,next:Function){
     }catch(err)
     {
           console.log('Validation Error!');
-          socket.emit('Connection_Error',{
+          socket.emit('verify/connection',{
             'status':false,
             'message':'Token not found',
             'data':String(err)
@@ -96,7 +96,7 @@ async function jwtVerifySocket(socket: Socket,next:Function){
 
 }
 
-async function authenticateOps(socket: Socket,next:Function,error:string,route:string,access:string){
+async function authenticateOps(socket: Socket,next:Function,route:string,access:string){
     try{
         const authkey:string = socket.client.request.headers.authorization;
         const res = await jwtAuth(authkey,"ops");
@@ -108,25 +108,29 @@ async function authenticateOps(socket: Socket,next:Function,error:string,route:s
                 try{
                     next(data);
                 }catch(e){
-                    socket.emit(error,{
+                    socket.emit(route,{
+                        "status":false,
                         "data":String(e)
                     });
                 }
     
             }else{
-                socket.emit(error,{
+                socket.emit(route,{
+                    "status":false,
                     "data":"Invalid JWT"
                 });
             }
         }else{
-            socket.emit(error,{
+            socket.emit(route,{
+                "status":false,
                 "data":"Invalid JWT"
             });
         }
 
     }catch(e){
         console.log(route,e);
-        socket.emit(error,{
+        socket.emit(route,{
+            "status":false,
             "data":String(e)
         });
     }

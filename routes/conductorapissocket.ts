@@ -11,17 +11,18 @@ async function busDataConductor(socket:Socket){
 
     const gettingBus=async(jwtData:Object)=>{
         const buses = await busModel.find();
-        socket.emit('C_Bus_Success',{
+        socket.emit('get/busStatic',{
+            "status":true,
             'data':buses
         });
     };
-    await globalService.authenticateOps(socket,gettingBus,'C_Bus_Error','get/busStatic',"Conductor");
+    await globalService.authenticateOps(socket,gettingBus,'get/busStatic',"Conductor");
 }
 
 async function busSessionStart(socket:Socket,datain:Object){
 
     const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validatebusIdReq,'Session_Error');
-    const sessionStarting=async(jwtData)=>{
+    const sessionStarting=async(jwtData:Object)=>{
         let busid=datain['busId'];
         const busObj = await busModel.findOneAndUpdate(
             {
@@ -31,15 +32,16 @@ async function busSessionStart(socket:Socket,datain:Object){
         );
         if(!busObj)
         {
-            socket.emit('Session_Error',{
+            socket.emit('post/startSession',{
+                "status":false,
                 "data":"Bus not found"
             });
         }else{
             const res = await cacheservices.redisOperateSession(busid);
-            console.log(res);
             if(!res['status'])
             {
-                socket.emit('Session_Error',{
+                socket.emit('post/startSession',{
+                    "status":false,
                     "data":res['message']
                 });
             }else{
@@ -51,7 +53,8 @@ async function busSessionStart(socket:Socket,datain:Object){
                     }
                 );
                 
-                socket.emit('Session_Success',{
+                socket.emit('post/startSession',{
+                    "status":true,
                     "data":tickets
                 });
             }
@@ -60,7 +63,7 @@ async function busSessionStart(socket:Socket,datain:Object){
 
     if(socketMessageValid)
     {
-    await globalService.authenticateOps(socket,sessionStarting,'Session_Error','get/bus',"Conductor");
+    await globalService.authenticateOps(socket,sessionStarting,'post/startSession',"Conductor");
     } 
 }
 
@@ -76,7 +79,9 @@ async function busScanQR(socket:Socket,datain:Object){
 
             if(sessionBusId!==ticketBusId)
             {
-                socket.emit('Verify_Error',{"data":"Bus Not matching!"});
+                socket.emit('post/scanQR',{
+                    "status":false,
+                    "data":"Bus Not matching!"});
             }else{
 
                 const ticket = await ticketModel.findOne({
@@ -87,21 +92,30 @@ async function busScanQR(socket:Socket,datain:Object){
     
                 if(!ticket)
                 {
-                    socket.emit('Verify_Error',{"data":"Ticket not found for this user!"});
+                    socket.emit('post/scanQR',{
+                        "status":false,
+                        "data":"Ticket not found for this user!"});
                 }else{
                     let res = await cacheservices.redisGetCode(sessionBusId);
                     if(!res['status'])
                     {
-                        socket.emit('Verify_Error',{"data":res['message']});
+                        socket.emit('post/scanQR',{
+                            "status":false,
+                            "data":res['message']});
                     }else if(res['message']!="Set req" && code!=res['message'])
                     {
-                        socket.emit('Verify_Error',{"data":"Outdated code found, request refresh!"});
+                        socket.emit('post/scanQR',{
+                            "status":false,
+                            "data":"Outdated code found, request refresh!"});
                     }
                     else{ 
                         await ticketModel.updateOne({busId:sessionBusId},{verified:true});
                         res = await cacheservices.redisOperateSession(sessionBusId);
             
-                        socket.emit("Verify_Success",{"data":"verified successfully"});
+                        socket.emit("post/scanQR",{
+                            "status":true,
+                            "data":"verified successfully"
+                        });
                     }
                 }
             }
@@ -109,7 +123,7 @@ async function busScanQR(socket:Socket,datain:Object){
 
         if(socketMessageValid)
         {
-            await globalService.authenticateOps(socket,scanningQR,'Verify_Error','get/bus',"Conductor");
+            await globalService.authenticateOps(socket,scanningQR,'post/scanQR',"Conductor");
         }   
         
 }

@@ -12,72 +12,100 @@ const cacheservices =require('../services/cacheservices');
 const middleware = require('../config/middleware');
 const socketvalidations = require('../config/socketschema');
 
-async function getWallet(socket:Socket){
-
-    const gettingWallet=async (data)=>{
-        const email = data.email;
+async function getWallet(socket:Socket,datain:Object){
+    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validatePageReq,'get/wallet');
+    const gettingWallet=async (jwtData:Object)=>{
+        const email = jwtData['email'];
+        const page=datain['page']-1;
+        const perPage = 5;
         const user = await UserModel.findOne({
+            email:email
+        });
+        const transactionsTotal = await TransactionModel.countDocuments({
             email:email
         });
         const transactions = await TransactionModel.find({
             email:email
-        })
+        }).skip(perPage * page).limit(perPage);
+
         const walletenc = user.wallet;
         const amt = userService.decryptAmount(walletenc);
-        socket.emit('Wallet_Success',{
+        socket.emit('get/wallet',{
+            "status":true,
             "wallet":amt,
+            "totaltxns":transactionsTotal,
             "transactions":transactions
         });
     };
 
-    await globalService.authenticateOps(socket,gettingWallet,'Wallet_Error','get/wallet',"User");
+    if(socketMessageValid) await globalService.authenticateOps(socket,gettingWallet,'get/wallet',"User");
 }
 
 async function getBookings(socket:Socket){
-    const gettingBookings = async(data)=>{
-        const email = data.email;
+    const gettingBookings = async(jwtData:Object)=>{
+        const email = jwtData['email'];
         const tickets = await TicketModel.find({
             email:email
         });
-        socket.emit('MyBookings_Success',{
+        socket.emit('get/bookings',{
+            "status":true,
             "tickets":tickets
         });
     };
     
-    await globalService.authenticateOps(socket,gettingBookings,'MyBookings_Error','get/bookings',"User");
+    await globalService.authenticateOps(socket,gettingBookings,'get/bookings',"User");
 }
 
 async function busData(socket:Socket,io:Server){
         const gettingBusData=async(jwtData)=>{
             const buses = await BusModel.find();
-            socket.emit('Bus_Success',{
+            socket.emit('get/bus',{
+                "status":true,
                 'data':buses
             });
-            const filter = { operationType: 'insert' };
             const changeStream = BusModel.watch({fullDocument: 'updateLookup' });
             changeStream.on('change', async(change) => {
                 const updatedbus = change.fullDocument;
                 try{
-                    const newnext = async(data)=>{  
-                        //TODO: Maybe move this from a list to hashmap based on ID
-                        //TODO: Maybe dont send the entire list, just send the updated document
-                        let index = buses.findIndex(function (bus,i) {
-                            return String(bus._id)===String(updatedbus._id)});
-                        if(index!==-1)
-                        {
-                            buses[index]=updatedbus;
+
+                    //Emits updated bus document to all connections without authenticating
+                    io.emit('get/bus',{
+                        "status":true,
+                        'data':updatedbus
+                    });
+
+                    //here lies : Logic that authenticates and emits full updated bus list
+
+
+                    // const sendingupdates = async(jwtData:Object)=>{
+                    //     //DONETODO: Maybe move this from a list to hashmap based on ID
+                    //     //DONETODO: Maybe dont send the entire list, just send the updated document
+                    //     let index = buses.findIndex(function (bus,i) {
+                    //         return String(bus._id)===String(updatedbus._id)});
+                    //     if(index!==-1)
+                    //     {
+                    //         buses[index]=updatedbus;
  
-                        }
-                        io.emit('Bus_Success',{
-                            'data':buses
-                        });
-                    };
-                    await globalService.authenticateOps(socket,newnext,'Bus_Error','get/bus',"User");
-    
+                    //     }
+                    //     io.emit('get/bus',{
+                    //         "status":true,
+                    //         'data':updatedbus
+                    //     });
+                    // };
+                    // //DONETODO: Maybe don't re authenticate everyone on every single ticket purchase
+                    // await globalService.authenticateOps(socket,sendingupdates,'get/bus',"User");
+                    
+
+                    //Emits updated bus document without authenticating everyone 
+                    
+                    
+                    //Emits on
+                    
                 }catch(err)
                 {
                     console.log("BUS UPDATE ERROR",err);
-                    socket.emit('Bus_Error',{
+                    socket.emit('get/bus',{
+                        "status":false,
                         'data':String(err)
                     });
                 }
@@ -85,14 +113,14 @@ async function busData(socket:Socket,io:Server){
               });
         };
 
-        await globalService.authenticateOps(socket,gettingBusData,'Bus_Error','get/bus',"User");
+        await globalService.authenticateOps(socket,gettingBusData,'get/bus',"User");
         
 
 }
 
 async function bookTicket(socket:Socket,datain:Object){
 
-    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validateTicketReq,'Booking_Error');
+    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validateTicketReq,'post/book');
         
     const bookingTicket=async(jwtData:Object)=>{
         const email = jwtData['email'];
@@ -102,14 +130,16 @@ async function bookTicket(socket:Socket,datain:Object){
         const reqtime=new Date(Date.now()).toISOString();
         const bookingreqdetail={'reqtime':reqtime,'source':src,'dest':dest,'time':time};
         function bookingsuccess(bookingdata:{}){
-            socket.emit('Booking_Success',{
+            socket.emit('post/book',{
+                "status":true,
                 "data":bookingdata
             });
             BusService.sendTicketMail(email,{...bookingdata,'message':'Success'},bookingreqdetail);
         }
 
         function bookingfaliure(errormessage:String){
-            socket.emit('Booking_Error',{
+            socket.emit('post/book',{
+                "status":false,
                 "data":errormessage
             });
             BusService.sendTicketMail(email,{'message':errormessage},bookingreqdetail);
@@ -119,12 +149,12 @@ async function bookTicket(socket:Socket,datain:Object){
     };
 
     if(socketMessageValid){
-        await globalService.authenticateOps(socket,bookingTicket,'Booking_Error','post/book',"User");
+        await globalService.authenticateOps(socket,bookingTicket,'post/book',"User");
     }
 }
 
 async function joinQueue(socket:Socket,datain:Object){
-    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validateQueueReq,'Queue_Error');
+    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validateQueueReq,'post/queue');
 
     const joiningQueue=async(jwtData:Object)=>{
         const email=jwtData['email'];
@@ -134,7 +164,8 @@ async function joinQueue(socket:Socket,datain:Object){
         });
         if(queueobjs.length>0)
         {
-            socket.emit('Queue_Error',{
+            socket.emit('post/queue',{
+                "status":false,
                 "data":"Already in queue!"
             });
         }else{
@@ -144,12 +175,14 @@ async function joinQueue(socket:Socket,datain:Object){
                 initTime:Date.now()
             });
             await newQueueobj.save().then((data)=>{
-                socket.emit('Queue_Success',{
+                socket.emit('post/queue',{
+                    "status":true,
                     "data":"Added to queue successfully",
                     "qid":data
                 });
             }).catch((e)=>{
-                socket.emit('Queue_Error',{
+                socket.emit('post/queue',{
+                    "status":false,
                     "data":"Error adding to queue",
                     "message":String(e)
                 });
@@ -159,29 +192,30 @@ async function joinQueue(socket:Socket,datain:Object){
 
     if(socketMessageValid)
     {
-        await globalService.authenticateOps(socket,joiningQueue,'Queue_Error','post/queue',"User");
+        await globalService.authenticateOps(socket,joiningQueue,'post/queue',"User");
     }
 }
 
 async function getQueueEntry(socket:Socket){
 
-    const thisnext=async(data)=>{
+    const gettingQueueEntry=async(data)=>{
         const email=data['email'];
         const queueobjs=await QueueModel.find({
             email:email
         });
-        socket.emit("GetQueue_Success",{
+        socket.emit("get/queue",{
+            "status":true,
             "data":queueobjs
         });
         //TODO: ON ERROR, EMIT EVENT
     };
 
-    await globalService.authenticateOps(socket,thisnext,'Queue_Error','post/queue',"User");
+    await globalService.authenticateOps(socket,gettingQueueEntry,'get/queue',"User");
 }
 
 async function getQR(socket:Socket,datain:Object){
 
-    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validatebusIdReq,'QR_Error');
+    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validatebusIdReq,'get/QR');
     const gettingQR=async(jwtData:Object)=>{
 
         const email=jwtData['email'];
@@ -197,18 +231,24 @@ async function getQR(socket:Socket,datain:Object){
             let res = await cacheservices.redisGetCode(sessionBusId);
             if(!res['status'])
             {
-                socket.emit('QR_Error',{"data":res['message']});
+                socket.emit('get/QR',{
+                    "status":false,
+                    "data":res['message']});
             }else{
-                socket.emit('QR_Success',{"data":res['message']});
+                socket.emit('get/QR',{
+                    "status":true,
+                    "data":res['message']});
             }
         }else{
-            socket.emit('QR_Error',{"data":"No ticket found!"});
+            socket.emit('get/QR',{
+                "status":false,
+                "data":"No ticket found!"});
         }
     };
 
     if(socketMessageValid)
     {
-        await globalService.authenticateOps(socket,gettingQR,'QR_Error','get/QR',"User"); 
+        await globalService.authenticateOps(socket,gettingQR,'get/QR',"User"); 
     }
 
 }

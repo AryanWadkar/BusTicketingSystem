@@ -7,6 +7,8 @@ const devServices=require('../services/devservices');
 const { validate } = new Validator({});
 const validJson = require("../config/schema");
 const queueModel = require('../models/queue');
+const userModel = require('../models/user');
+const userService = require('../services/userservices');
 
 //ADD ROUTES
 router.post("/addbus",validate({ body: validJson.addBusSchema }),async(req,res)=>{
@@ -121,7 +123,27 @@ router.get("/deleteallbus",async(req,res)=>{
 
 router.get("/deletequeue",async(req,res)=>{
     try{
-        const data = await devServices.deleteQueue;
+        const data = await devServices.deleteQueue();
+        res.status(200).json({
+            'status':true,
+            'data':data
+        });
+    }catch(err)
+    {
+        res.status(500).json({
+            'status':false,
+            'data':err
+        });
+    }
+
+});
+
+router.post("/deleteuser",validate({ body: validJson.usernameSchema }),async(req,res)=>{
+    try{
+        const email=req.body['username'];
+        const data = await userModel.deleteOne({
+            email:email
+        });
         res.status(200).json({
             'status':true,
             'data':data
@@ -229,6 +251,31 @@ router.get("/resetalltickets",async(req,res)=>{
         });
     }catch(err){
         res.status(400).json({
+            'status':false,
+            'data':err
+        });
+    }
+
+});
+
+router.post("/resetwallet",validate({ body: validJson.usernameSchema }),async(req,res)=>{
+    try{
+    const email=req.body['username'];
+    const initWallet = userService.encryptAmount(200);
+    const data = await userModel.updateOne({
+        "email":email,
+    },{
+        wallet:initWallet
+    });
+    //TODO: maybe clear txns for this user as well
+    res.status(200).json({
+        'status':false,
+        'data':data
+    });
+
+    }catch(err)
+    {
+        res.status(503).json({
             'status':false,
             'data':err
         });

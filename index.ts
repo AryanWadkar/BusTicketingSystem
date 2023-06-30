@@ -36,7 +36,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ message: "Buts server functional!" });
+  res.json({ message: "Sever is now functional!" });
 });
 
 app.use("/user", userrest);
@@ -60,7 +60,7 @@ io.use(globalservices.jwtVerifySocket).on("connection", (socket)=>{
   socket.on('post/book',(messageData)=>usersocket.bookTicket(socket,messageData));
   socket.on('post/queue',(messageData)=>usersocket.joinQueue(socket,messageData));
   socket.on('get/bookings',(messageData)=>usersocket.getBookings(socket));
-  socket.on('get/wallet',(messageData)=>usersocket.getWallet(socket));
+  socket.on('get/wallet',(messageData)=>usersocket.getWallet(socket,messageData));
   socket.on('get/queue',(messageData)=>usersocket.getQueueEntry(socket));
   socket.on('get/QR',(messageData)=>usersocket.getQR(socket,messageData));
   

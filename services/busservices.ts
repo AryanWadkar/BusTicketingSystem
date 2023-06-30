@@ -6,107 +6,115 @@ const TicketModel = require('../models/ticket');
 import * as nodemailer from 'nodemailer';
 import * as mongoose from 'mongoose';
 
-async function bookTicket(email:String,ticketsrc:String,ticketdest:String,tickettime:Date,err:Function,next:Function):Promise<void>{
-    const session = await mongoose.startSession();
-            session.startTransaction();
-            const user = await UserModel.findOne({
-                email:email
-            });
-            const walletenc = user.wallet;
-            const busExists = await BusModel.findOne({
-                source:ticketsrc,
-                destination:ticketdest,
-                startTime:tickettime,
-                capacity:{$gt:0},
-                sessionStart:false
-            });
-            if(!busExists){
-                err("No Valid Bus Found");
-            }else{
-                const ticketex = await TicketModel.find({
-                    email:email,
+async function bookTicket(email:String,ticketsrc:String,ticketdest:String,tickettime:Date,err:Function,next:Function,cascade:Function|null):Promise<void>{
+
+    const user = await UserModel.findOne({
+        email:email});
+    const walletenc = user.wallet;
+    const busExists = await BusModel.findOne({
+        source:ticketsrc,
+        destination:ticketdest,
+        startTime:tickettime,
+        capacity:{$gt:0},
+        sessionStart:false});
+    
+    if(!busExists){
+
+        err("No Valid Bus Found");
+
+    }else{
+        const ticketex = await TicketModel.findOne({
+            email:email,
+            source:ticketsrc,
+            destination:ticketdest,
+            startTime:tickettime,
+        });
+        if(ticketex)
+        {
+            err("Already Booked!");
+        }else{
+            const ticket = await TicketModel.findOne(
+                {
                     source:ticketsrc,
                     destination:ticketdest,
                     startTime:tickettime,
-                });
-                if(ticketex.length>0)
+                    email: { $eq: "" },
+                    txnId:{ $eq: "" }
+                }
+                );
+            if(!ticket)
+            {
+                err("No tickets found!");
+            }else{
+                const session = await mongoose.startSession();
+                session.startTransaction();
+                try
                 {
-                    err("Already Booked!");
-                }else{
-                    const ticket = await TicketModel.findOne(
-                        {
-                          source:ticketsrc,
-                          destination:ticketdest,
-                          startTime:tickettime,
-                          email: { $eq: "" },
-                          txnId:{ $eq: "" }
-                        }
-                      ).session(session); 
-                    if(!ticket)
+                    let amt = userservice.decryptAmount(walletenc);
+                    const ticketcost= parseInt(process.env.TICKET_AMT || "", 20);
+                    if(amt<ticketcost)
                     {
-                        err("No tickets found!");
+                        err("Insufficient balance!");
                     }else{
-                        try
-                        {
-                            let amt = userservice.decryptAmount(walletenc);
-                            const ticketcost= parseInt(process.env.TICKET_AMT || "", 20);
-                            if(amt<ticketcost)
+
+                        amt=amt-ticketcost;
+                        const encamt = userservice.encryptAmount(amt);
+                        await UserModel.updateOne(
+                            { email: email },
+                            { $set: { wallet: encamt } },
+                            { session }
+                        ).session(session);
+
+
+                        const transaction = new TransactionModel({
+                        amount: ticketcost,
+                        email: email,
+                        date: new Date(),
+                        type: '-'
+                        });
+                        
+
+                        const newtransaction= await transaction.save({session});
+                        await TicketModel.updateOne(
+                            { _id: ticket._id },
+                            { $set: { txnId: newtransaction._id,email:email } },
+                            { session }
+                        ).session(session);
+
+                        await BusModel.updateOne(
                             {
-                                err("Insufficient balance!");
-                            }else{
-    
-                                amt=amt-ticketcost;
-                                const encamt = userservice.encryptAmount(amt);
-                                await UserModel.updateOne(
-                                    { email: email },
-                                    { $set: { wallet: encamt } },
-                                    { session }
-                                ).session(session);
-    
-    
-                                const transaction = new TransactionModel({
-                                amount: ticketcost,
-                                email: email,
-                                date: new Date(),
-                                type: '-'
-                                });
-                                
-    
-                                const newtransaction= await transaction.save({session});
-                                await TicketModel.updateOne(
-                                    { _id: ticket._id },
-                                    { $set: { txnId: newtransaction._id,email:email } },
-                                    { session }
-                                ).session(session);
-    
-                                await BusModel.updateOne(
-                                    {
-                                        source:ticketsrc,
-                                        destination:ticketdest,
-                                        startTime:tickettime,
-                                    },
-                                    { $inc: { capacity: -1 } },
-                                    { session }
-                                ).session(session);
-                                await session.commitTransaction();
-                                next({
-                                    "source":ticketsrc,
-                                    "destination":ticketdest,
-                                    "startTime":tickettime,
-                                    "ticketId": ticket._id,
-                                    "txnId": newtransaction._id
-                                });
-    
-                            }
-                            }catch(e){
-                                await session.abortTransaction();
-                                err(String(e));
-                            }finally {
-                                session.endSession();
-                            }
+                                source:ticketsrc,
+                                destination:ticketdest,
+                                startTime:tickettime,
+                            },
+                            { $inc: { capacity: -1 } },
+                            { session }
+                        ).session(session);
+                        const bookingdata={
+                            "source":ticketsrc,
+                            "destination":ticketdest,
+                            "startTime":tickettime,
+                            "ticketId": ticket._id,
+                            "txnId": newtransaction._id
+                        };
+                        if(cascade)
+                        {
+                            await cascade(bookingdata,session);
+                        }
+
+                        await session.commitTransaction();
+
+                        next(bookingdata);
                     }
+                }catch(e){
+                    await session.abortTransaction();
+                    err(String(e));
+                }finally {
+                    await session.endSession();
                 }
             }
+        }
+    }
 }
 
 async function sendQueueMail(tosend:String,processresult:object,orignalrequestdata:object){

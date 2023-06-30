@@ -3,7 +3,6 @@ require('dotenv').config();
 const busModel = require("../models/bus");
 const flatCache = require('flat-cache');
 import redisInstance from "../config/redis"
-import redis from "../config/redis";
 
 const redisOperateLat = async (email,lat): Promise<object>=>{
     const redislat = await redisInstance.redisClient.get(email).catch((err)=>{

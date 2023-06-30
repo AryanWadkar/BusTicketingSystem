@@ -86,9 +86,21 @@ const scanQRSchema = {
     required: ["code", "email", "ticketBusId", "sessionBusId"]
 };
 
+const pageReqSchema = {
+  type: 'object',
+  properties: {
+      page: {
+      type: 'number',
+      "minimum": 1,
+    },
+  },
+  required: ['page'],
+};
+
 const validateTicketReq:ValidateFunction = ajv.compile(ticketReqSchema);
 const validatebusIdReq:ValidateFunction = ajv.compile(busIdReqSchema);
 const validateQueueReq:ValidateFunction = ajv.compile(queueReqSchema);
 const validateScanQRReq:ValidateFunction = ajv.compile(scanQRSchema);
+const validatePageReq:ValidateFunction = ajv.compile(pageReqSchema);
 
-module.exports={validatebusIdReq,validateTicketReq,validateQueueReq,validateScanQRReq};
+module.exports={validatebusIdReq,validateTicketReq,validateQueueReq,validateScanQRReq,validatePageReq};

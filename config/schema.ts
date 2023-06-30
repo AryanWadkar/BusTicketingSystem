@@ -92,7 +92,7 @@ const busIdReqSchema: AllowedSchema  = {
   required: ["busId"],
   properties: {
     busId: {
-      type: ["string","integer"],
+      type: "string",
       minLength:12
     }
   },
