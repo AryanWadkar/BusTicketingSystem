@@ -3,7 +3,11 @@ const ticketModel = require('../models/ticket');
 const queueModel = require('../models/queue');
 const busModel=require('../models/bus');
 const busService = require('../services/busservices');
+const adminModel = require('../models/admin');
 import redisInstance from "../config/redis"
+import { Response,Request } from 'express';
+const bcrypt = require("bcryptjs");
+const userService = require('../services/userservices');
 
 async function resetTickets(busId:string|null):Promise<Array<Object>>{
     const session = await mongoose.startSession();
@@ -19,16 +23,17 @@ async function resetTickets(busId:string|null):Promise<Array<Object>>{
             },
             { session } 
             ).session(session);
-            const busclr = await busModel.updateMany({
+            const currbus = await busModel.findOne({_id:busId});
+            let busclr = await busModel.updateOne({
                 _id:busId
-            },{
-                $set:{"sessionStart":false,
-                "capactiy":"$initialCapacity"
+            }, {
+                $set: {
+                  sessionStart: false,
+                  capacity: currbus.initialCapacity
                 }
-            },
+              },
             { session }
-            ).session(session);
-
+            ).session(session);    
             await session.commitTransaction();
 
             return [ticketclr,busclr];
@@ -49,21 +54,28 @@ async function resetTickets(busId:string|null):Promise<Array<Object>>{
                 txnId:"",
             },
             { session }).session(session);
-            const busclr = await busModel.updateMany({
-        
-            },
-                {
-                    $set:{"sessionStart":false,
-                    "capactiy":"$initialCapacity"
-                    }
-                },
-                { session }
-            
-        ).session(session);
+            const allbus=await busModel.find({});
+            //TODO: Find a good aggregation pipeline
+            for(const bus of allbus)
+            {
+                await busModel.updateOne(
+                    {
+                        _id:bus._id
+                    },
+                    {
+                        $set: {
+                          sessionStart: false,
+                          capacity: bus.initialCapacity
+                        }
+                      },
+                    { session }
+                  );
+            }
+
 
             redisInstance.redisClient.flushAll();
             await session.commitTransaction();
-            return [ticketclr,busclr];
+            return [ticketclr];
         }catch(err)
         {
             await session.abortTransaction();
@@ -139,4 +151,93 @@ async function processQueue(){
         // });
 }
 
-module.exports={resetTickets,deleteQueue,processQueue};
+async function resetPass(email:string,access:string,newpass:string,res:Response){
+    try{    
+        let user = await adminModel.find({
+            email:email,
+            access:access
+        });
+        if(!user)
+        {
+            res.status(404).json({
+                "status":false,
+                "message":"Invalid reset request"
+            });
+        }else{
+            const saltrounds=10;
+            const hashpass = await bcrypt.hashSync(newpass,saltrounds);
+            await adminModel.updateOne({
+                email:email,
+                access:access
+            },{
+                $set:{
+                    password:hashpass,
+                }
+            }
+            ).then((data)=>{
+                res.status(200).json({
+                    "status":true,
+                    "message":"Password reset successfully"
+                });
+            }).catch((error)=>{
+                res.status(500).json({
+                    "status":false,
+                    "message":"Error resetting password!",
+                    "data":String(error)
+                });
+            });
+        }
+    
+    }catch(e){
+        console.log('/resetAdminPassword',e);
+            res.status(400).json({
+                "status":false,
+                "message":"Invalid request",
+                'data':String(e)
+            });
+        }
+}
+
+async function resetPassSendOTP(email:string,access:string,res:Response)
+{
+    try{
+    let admin = await adminModel.findOne({
+        email:email,
+        access:access
+    });
+    if(admin)
+    {
+        await userService.sendOTPMail('reset',email,res);
+    }else{
+        res.status(400).json({
+            "status":false,
+            "message":"User not found",
+            "email":email
+        });
+
+    }
+    }catch(e){
+        console.log('/AdminresetPassSendOTP',e);
+            res.status(400).json({
+                "status":false,
+                "message":String(e),
+            });
+        }
+}
+
+async function resetPassVerifyOTP(email:string,unhashedOTP:string,res:Response)
+{
+    try{    
+        await userService.verifyOTP(res,unhashedOTP,'adminReset',email);
+    }catch(e){
+        console.log('resetPassVerifyOTP',e);
+            res.status(500).json({
+                "status":false,
+                "message":"Unkown Error",
+                'data':String(e)
+            });
+    }
+}
+
+
+module.exports={resetTickets,deleteQueue,processQueue,resetPass,resetPassSendOTP,resetPassVerifyOTP};

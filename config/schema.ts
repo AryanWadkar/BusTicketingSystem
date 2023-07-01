@@ -98,6 +98,44 @@ const busIdReqSchema: AllowedSchema  = {
   },
 };
 
+const OTRSchema: AllowedSchema  = {
+  type: "object",
+  required: ["email","pass","access","magicword","name"],
+  properties: {
+    email: {
+      type: "string",
+    },
+    pass: {
+      type: "string",
+    },
+    access: {
+      type: "string",
+    },
+    magicword: {
+      type: "string",
+    },
+    name: {
+      type: "string",
+    },
+  },
+};
+
+const revokeSchema: AllowedSchema  = {
+  type: "object",
+  required: ["email","access","magicword"],
+  properties: {
+    email: {
+      type: "string",
+    },
+    access: {
+      type: "string",
+    },
+    magicword: {
+      type: "string",
+    }
+  },
+};
+
 module.exports={
     usernameSchema,
     username_opt_Schema,
@@ -105,5 +143,7 @@ module.exports={
     loginSchema,
     resetPassSchema,
     addBusSchema,
-    busIdReqSchema
+    busIdReqSchema,
+    OTRSchema,
+    revokeSchema
 }

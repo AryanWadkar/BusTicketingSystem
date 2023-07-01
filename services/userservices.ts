@@ -5,7 +5,6 @@ const bcrypt = require("bcryptjs");
 import * as nodemailer from 'nodemailer';
 const OTPmodel = require("../models/otp");
 const jwt = require("jsonwebtoken");
-const userModel = require("../models/user");
 
 function encryptAmount(amount:Number):String {
     let iv = crypto.randomBytes(16);
@@ -178,56 +177,10 @@ function usernameToEmail(inval:string){
     return inval;
 }
 
-async function resetPass(email:string,newpass:string,req:Request,res:Response){
-    try{    
-        let user = await userModel.find({
-            email:email
-        });
-        if(!user)
-        {
-            res.status(404).json({
-                "status":false,
-                "message":"Invalid reset request"
-            });
-        }else{
-            const saltrounds=10;
-            const hashpass = await bcrypt.hashSync(newpass,saltrounds);
-            await userModel.updateOne({
-                email:email,
-            },{
-                $set:{
-                    password:hashpass,
-                }
-            }
-            ).then((data)=>{
-                res.status(200).json({
-                    "status":true,
-                    "message":"Password reset successfully"
-                });
-            }).catch((error)=>{
-                res.status(500).json({
-                    "status":false,
-                    "message":"Error resetting password!",
-                    "data":String(error)
-                });
-            });
-        }
-    
-    }catch(e){
-        console.log('/resetPassword',e);
-            res.status(400).json({
-                "status":false,
-                "message":"Invalid request",
-                'data':String(e)
-            });
-        }
-}
-
 module.exports = {
     encryptAmount,
     decryptAmount,
     sendOTPMail,
     verifyOTP,
-    usernameToEmail,
-    resetPass
+    usernameToEmail
 }

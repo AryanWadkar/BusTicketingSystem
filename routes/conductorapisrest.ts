@@ -4,29 +4,29 @@ import { Response,Request } from 'express';
 import { Validator} from "express-json-validator-middleware";
 const { validate } = new Validator({});
 const validJson = require("../config/schema");
-const userModel = require("../models/user");
+const adminModel = require('../models/admin');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const cacheService = require('../services/cacheservices');
-const userService = require('../services/userservices');
+const globalService = require('../services/globalservices');
+const devService = require('../services/devservices');
 
-router.post("/loginConductor",  validate({ body: validJson.loginSchema }),  
+router.post("/login",  validate({ body: validJson.loginSchema }),  
 async (req: Request,res: Response)=>{
     try{    
     let pass:string = req.body["password"];
     let email:string = req.body["email"];
-    const user = await userModel.findOne({
+    const admin = await adminModel.findOne({
         email:email,
-        regStatus:true,
+        access:"Conductor"
     });
-    if(!user)
+    if(!admin)
     {
         res.status(404).json({
             "status":false,
-            "message":"User not found"
+            "message":"Admin not found"
         });
     }else{
-        const hashedpass = user.password;
+        const hashedpass = admin.password;
         const validity = await bcrypt.compareSync(pass,hashedpass);
         
         if(validity)
@@ -35,45 +35,30 @@ async (req: Request,res: Response)=>{
             const payload = {
                 "email":email,
                 "purpose":"ops",
-                "lat":date,
-                "access":"Conductor"
+                "access":"Conductor",
+                "lat":date
             };
     
-            jwt.sign(
+            const token = jwt.sign(
                 payload,
                 process.env.JWT_KEY,
-                async (err, tokenx) => {
-                    if(err)
-                    {
-                        res.status(500).json({
-                            "status":false,
-                            "message":"Error signing JWT",
-                            "data":String(err)
-                        });
-                    }else{
-                        const saving = await cacheService.redisOperateLat(email,date);
-                        if(saving['status']===true)
-                        {
-                            res.status(200).json({
-                                "status":true,
-                                "message":"Logged in Successfully",
-                                "data":{
-                                    "email":email,
-                                    "token":tokenx,
-                                }});
-
-                        }else{
-                            res.status(500).json({
-                                "status":false,
-                                "message":"Error registering, please retry!",
-                                "data":saving['message']
-                            });
-                        }
-
-                    }
-
-                }
+                {expiresIn:"1d"}
             );
+            if(token)
+            {
+                res.status(200).json({
+                    "status":true,
+                    "message":"Logged in Successfully",
+                    "data":{
+                        "email":email,
+                        "token":token,
+                    }});
+            }else{
+                res.status(500).json({
+                    "status":false,
+                    "message":"Error signing JWT"
+                });
+            }
         }else{
             res.status(200).json({
                 "status":false,
@@ -83,7 +68,7 @@ async (req: Request,res: Response)=>{
     }
 
 }catch(e){
-    console.log('/loginUser',e);
+    console.log('/loginAdmin',e);
         res.status(400).json({
             "status":false,
             "message":String(e),
@@ -93,124 +78,48 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/registerConductor",  /*validate({ body: validJson.registrationSchema }),*/   
-async (req: Request,res: Response)=>{
-    //let data:object = await globalService.jwtVerifyHTTP(req,res,"registration");
-    if(true/*data*/)
-    {
-        try{   
-            let pass:string = req.body["password"];
-            let email:String = req.body["email"];
-            const user = await userModel.findOne({
-                email:email,
-                regStatus:false,
-            });
-            if(!user)
-            {
-                res.status(404).json({
-                    "status":false,
-                    "message":"Invalid Registration Request!"
-                });
-            }else{
-                const saltrounds=10;
-                const hashpass = await bcrypt.hashSync(pass,saltrounds);
-                const date = Date.now();
-                const payload = {
-                    "email":email,
-                    "purpose":"ops",
-                    "lat":date,
-                    "access":"User"
-                };
-                jwt.sign(
-                    payload,
-                    process.env.JWT_KEY,
-                    async (err, tokenx) => {
-                        if(err){
-                            res.status(500).json({
-                                "status":false,
-                                "message":"Error generating JWT",
-                                "data":String(err)
-                            });
-                        }else{
+router.post("/resetPassSendOTP",validate({ body: validJson.usernameSchema }),async(req:Request,res:Response)=>{
+    try{    
+    let username:string=req.body["username"];
+    await devService.resetPassSendOTP(username,"Conductor",res);
+    }catch(e){
+        console.log('/resetPassSendOTP',e);
+        res.status(400).json({
+            "status":false,
+            "message":String(e),
+        });
+    }
+});
 
-                            await userModel.updateOne({
-                                "email":email,
-                                "regStatus":false
-                            },{
-                                $set:{
-                                    regStatus:true,
-                                    password:hashpass,
-                                }
-                            }).then(async (data)=>{
-                                const saving = await cacheService.redisOperateLat(email,date);
-                                if(saving['status']===true)
-                                {
-                                    res.status(200).json({
-                                        "status":true,
-                                        "message":"Registered Successfully!",
-                                        "data":{
-                                            "email":email,
-                                            "token":tokenx,
-                                        }
-                                    });
-                                }else{
-                                    res.status(500).json({
-                                        "status":false,
-                                        "message":"Error registering, please retry!",
-                                        "data":saving['message']
-                                    });
-                                }
-                            }).catch(async (err)=>{
-                                await userModel.updateOne({
-                                    "email":email,
-                                },{
-                                    $set:{
-                                        regStatus:false,
-                                        name:"",
-                                        password:"",
-                                    }
-                                })
-                                res.status(500).json({
-                                    "status":false,
-                                    "message":"Error registering, please retry!",
-                                    "data":String(err)
-                                });
-                            });
-                        }
-                    }
-                );
-        
-            }
-        
-        }catch(e){
-            console.log('/registerUser',e);
-                res.status(400).json({
-                    "status":false,
-                    "message":String(e),
-                });
-            }
+router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema }),async(req:Request,res:Response)=>{
+
+    try{    
+        let username:string=req.body["username"];
+        let unhashedOTP:string = req.body["otp"];
+        await devService.resetPassVerifyOTP(username,unhashedOTP,res)
+    }catch(e){
+        console.log('/resetPassVerifyOTP',e);
+            res.status(500).json({
+                "status":false,
+                "message":"Unkown Error",
+                'data':String(e)
+        });
+    }
+});
+
+router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
+    let data = await globalService.jwtVerifyHTTP(req,res,'adminReset');
+    if(data)
+    {
+        let newpass:string=req.body["newpass"];
+        let email:string = data["email"];
+        await devService.resetPass(email,"Conductor",newpass,res);
     }else{
         res.status(401).json({
             "status":false,
-            "message":"Invalid Token!"
+            "message":"Invalid token"
         });
     }
-
-
-}
-);
-
-router.post("/resetConductorPass",async(req,res)=>{
-    //TODO: Add validation
-    try{
-        const newpass:string=res['newpass'];
-        await userService.resetPass("busutilityticketingsystem@gmail.com",newpass);
-    }catch(e){
-        res.status(200).json({
-            'status':true,
-        });
-    }
-
 });
 
 module.exports = router;

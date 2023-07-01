@@ -6,25 +6,37 @@ const cacheService = require('./cacheservices');
 
 
 async function jwtAuth(authKey:String,purpose:String): Promise<object>{
-    const data = jwt.verify(authKey,process.env.JWT_KEY);
-    if(data)
-    {
-        if(data["purpose"]===purpose)
+    try{
+        const data = jwt.verify(authKey,process.env.JWT_KEY);
+        if(data)
         {
-            if(purpose=="ops")
-            {
-                const res = await cacheService.redisOperateLat(data['email'],data['lat']);
-                return {"status":res['status'],message:res['message'],data:data};
-            }else{
-                return {"status":true,message:"Verfied successfully",data:data};
+            try{
+                if(data["purpose"]===purpose)
+                {
+                    if(purpose=="ops")
+                    {
+                        const res = await cacheService.redisOperateLat(data['email'],data['lat']);
+                        return {"status":res['status'],message:res['message'],data:data};
+                    }else{
+                        return {"status":true,message:"Verfied successfully",data:data};
+                    }
+        
+                }else{
+                    return {"status":false,"message":"Incorrect token"};
+                }
+            }catch(err){
+                return {"status":false,"message":"Incorrect token"};
             }
-
+    
         }else{
-            return {"status":false,"message":"Incorrect token"};
+            return {"status":false,"message":"Invalid token signature!"};
         }
-    }else{
-        return {"status":false,"message":"Invalid token signature!"};
+    }catch(err)
+    {
+
+        return {"status":false,"message":`"${err}"`};
     }
+
 
 }
 
@@ -57,6 +69,7 @@ async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<ob
     }
     
 }
+
 
 async function jwtVerifySocket(socket: Socket,next:Function){
     console.log('Validating socket connection');
@@ -102,24 +115,25 @@ async function authenticateOps(socket: Socket,next:Function,route:string,access:
         const res = await jwtAuth(authkey,"ops");
         if(res['status']===true)
         {
-            const data=res['data'];
-            if(data && data['access']==access)
-            {
-                try{
+            try{
+                
+                const data=res['data'];
+                if(data && data['access']==access)
+                {
                     next(data);
-                }catch(e){
+                }else{
                     socket.emit(route,{
                         "status":false,
-                        "data":String(e)
+                        "data":"Invalid JWT"
                     });
                 }
-    
-            }else{
+            }catch(e){
                 socket.emit(route,{
                     "status":false,
-                    "data":"Invalid JWT"
+                    "data":String(e)
                 });
             }
+
         }else{
             socket.emit(route,{
                 "status":false,

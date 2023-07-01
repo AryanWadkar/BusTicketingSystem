@@ -12,6 +12,7 @@ const userrest = require("./routes/userapisrest");
 const globalservices = require('./services/globalservices');
 const dev = require('./routes/dev');
 const conductor = require('./routes/conductorapisrest');
+const godadmin = require('./routes/godadmin');
 const usersocket = require('./routes/userapissocket');
 const conductorsocket=require('./routes/conductorapissocket');
 //const scheduler = require('./schedulers/clearscheduler');
@@ -44,6 +45,8 @@ app.use("/user", userrest);
 app.use("/dev", dev);
 
 app.use("/conductor", conductor);
+
+app.use("/godadmin", godadmin);
 
 app.use(middleWare.validationErrorMiddleware);
 

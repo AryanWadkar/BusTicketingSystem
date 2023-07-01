@@ -71,7 +71,7 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/registerUser",  validate({ body: validJson.registrationSchema }),   
+router.post("/register",  validate({ body: validJson.registrationSchema }),   
 async (req: Request,res: Response)=>{
     let data:object = await globalService.jwtVerifyHTTP(req,res,"registration");
     if(data)
@@ -192,7 +192,7 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/loginUser",  validate({ body: validJson.loginSchema }),  
+router.post("/login",  validate({ body: validJson.loginSchema }),  
 async (req: Request,res: Response)=>{
     try{    
     let pass:string = req.body["password"];
@@ -326,7 +326,7 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
                 "message":"Unkown Error",
                 'data':String(e)
             });
-        }
+    }
 });
 
 router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
@@ -335,15 +335,54 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
     {
         let newpass:string=req.body["newpass"];
         let email:string = data["email"];
-        await userService.resetPass(email,newpass,req,res);
+        try{    
+            let user = await userModel.find({
+                email:email
+            });
+            if(!user)
+            {
+                res.status(404).json({
+                    "status":false,
+                    "message":"Invalid reset request"
+                });
+            }else{
+                const saltrounds=10;
+                const hashpass = await bcrypt.hashSync(newpass,saltrounds);
+                await userModel.updateOne({
+                    email:email,
+                },{
+                    $set:{
+                        password:hashpass,
+                    }
+                }
+                ).then((data)=>{
+                    res.status(200).json({
+                        "status":true,
+                        "message":"Password reset successfully"
+                    });
+                }).catch((error)=>{
+                    res.status(500).json({
+                        "status":false,
+                        "message":"Error resetting password!",
+                        "data":String(error)
+                    });
+                });
+            }
+        
+        }catch(e){
+            console.log('/resetPassword',e);
+                res.status(400).json({
+                    "status":false,
+                    "message":"Invalid request",
+                    'data':String(e)
+                });
+            }
     }else{
         res.status(401).json({
             "status":false,
             "message":"Invalid token"
         });
     }
-
-
 });
 
 module.exports = router;
