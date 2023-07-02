@@ -5,23 +5,36 @@ const cacheservices =require('../services/cacheservices');
 const ticketModel = require('../models/ticket');
 const middleware = require('../config/middleware');
 const socketvalidations = require('../config/socketschema');
-
+const serverState=require('../services/stateservices');
 
 async function busDataConductor(socket:Socket){
+    const currOverride=serverState.getoverRideState();
+    if(currOverride)
+    {
+      socket.emit('maintainence',{
+        "message":"Server is under maintainence, please try later"
+      });
+    }else{
+        const gettingBus=async(jwtData:Object)=>{
+            const buses = await busModel.find();
+            socket.emit('get/busStatic',{
+                "status":true,
+                'data':buses
+            });
+        };
+        await globalService.authenticateOps(socket,gettingBus,'get/busStatic',"Conductor");
+    }
 
-    const gettingBus=async(jwtData:Object)=>{
-        const buses = await busModel.find();
-        socket.emit('get/busStatic',{
-            "status":true,
-            'data':buses
-        });
-    };
-    await globalService.authenticateOps(socket,gettingBus,'get/busStatic',"Conductor");
 }
 
 async function busSessionStart(socket:Socket,datain:Object){
-
-    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validatebusIdReq,'Session_Error');
+    const currOverride=serverState.getoverRideState();
+    if(currOverride)
+    {
+      socket.emit('maintainence',{
+        "message":"Server is under maintainence, please try later"
+      });
+    }else{    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validatebusIdReq,'Session_Error');
     const sessionStarting=async(jwtData:Object)=>{
         let busid=datain['busId'];
         const busObj = await busModel.findOneAndUpdate(
@@ -64,12 +77,19 @@ async function busSessionStart(socket:Socket,datain:Object){
     if(socketMessageValid)
     {
     await globalService.authenticateOps(socket,sessionStarting,'post/startSession',"Conductor");
-    } 
+    } }
+
 }
 
 async function busScanQR(socket:Socket,datain:Object){
-
-    const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validateScanQRReq,'Verify_Error');
+    const currOverride=serverState.getoverRideState();
+    if(currOverride)
+    {
+      socket.emit('maintainence',{
+        "message":"Server is under maintainence, please try later"
+      });
+    }else{
+        const socketMessageValid = middleware.socketValidationMiddleware(socket,datain,socketvalidations.validateScanQRReq,'Verify_Error');
 
         const scanningQR=async(jwtData:Object)=>{
             let sessionBusId=datain['sessionBusId'];
@@ -124,7 +144,9 @@ async function busScanQR(socket:Socket,datain:Object){
         if(socketMessageValid)
         {
             await globalService.authenticateOps(socket,scanningQR,'post/scanQR',"Conductor");
-        }   
+        } 
+    }
+  
         
 }
 

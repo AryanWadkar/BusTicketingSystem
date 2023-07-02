@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "install":"rimraf ./build && tsc",
     "build": "rimraf ./build && tsc",
-    "start": "node --max-old-space-size=256 ./build/index.js"
+    "start": "node ./build/index.js"
   },
   "author": "Aryan Wadkar",
   "license": "ISC",

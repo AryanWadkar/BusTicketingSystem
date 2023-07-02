@@ -8,6 +8,7 @@ import redisInstance from "../config/redis"
 import { Response,Request } from 'express';
 const bcrypt = require("bcryptjs");
 const userService = require('../services/userservices');
+const otpModel = require('../models/otp');
 
 async function resetTickets(busId:string|null):Promise<Array<Object>>{
     const session = await mongoose.startSession();
@@ -87,8 +88,14 @@ async function resetTickets(busId:string|null):Promise<Array<Object>>{
 }
 
 async function deleteQueue():Promise<object>{
-    const data = await queueModel.deleteMany({});
-    return data;
+    try{
+        const data = await queueModel.deleteMany({});
+        return data;
+    }catch(err)
+    {
+        return err;
+    }
+
 }
 
 async function processQueue(){
@@ -149,6 +156,16 @@ async function processQueue(){
         // queueobjs.forEach(async queuereq => {
             //THIS DOES NOT WAIT FOR CONTENTS WITHIN TO FINISH EXECUTING!!!!!!
         // });
+}
+
+async function deleteOTPs():Promise<object>{
+    try{
+        const data = await otpModel.deleteMany({});
+        return data;
+    }catch(err)
+    {
+        return err;
+    }
 }
 
 async function resetPass(email:string,access:string,newpass:string,res:Response){
@@ -240,4 +257,4 @@ async function resetPassVerifyOTP(email:string,unhashedOTP:string,res:Response)
 }
 
 
-module.exports={resetTickets,deleteQueue,processQueue,resetPass,resetPassSendOTP,resetPassVerifyOTP};
+module.exports={resetTickets,deleteQueue,processQueue,resetPass,resetPassSendOTP,resetPassVerifyOTP,deleteOTPs};

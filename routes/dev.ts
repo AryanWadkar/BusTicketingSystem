@@ -15,7 +15,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const globalService = require('../services/globalservices');
 const devService = require('../services/devservices');
-const otpModel = require('../models/otp');
+
+const stateservices=require('../services/stateservices');
+
 //ADD ROUTES
 router.post("/addbus",validate({ body: validJson.addBusSchema }),async(req,res)=>{
     let data:object = await globalService.jwtVerifyHTTP(req,res,"Dev");
@@ -209,7 +211,7 @@ router.get("/deleteotps",async(req,res)=>{
     if(data)
     {
         try{
-            const data = await otpModel.deleteMany({});
+            const data = await devServices.deleteOTPs();
             res.status(200).json({
                 'status':true,
                 'data':data
@@ -529,6 +531,32 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
             "message":"Invalid token"
         });
     }
+});
+
+router.get("/toggleSuspension",async(req:Request,res:Response)=>{
+    let data = await globalService.jwtVerifyHTTP(req,res,'Dev');
+    if(data)
+    {
+        try{
+            const data = stateservices.toggleState();
+            res.status(503).json({
+                "status":false,
+                "message":`set to ${data}`
+            });
+        }catch(e){
+            res.status(503).json({
+                "status":false,
+                "message":String(e)
+            });
+        }
+    }else{
+        res.status(401).json({
+            "status":false,
+            "message":"Invalid token"
+        });
+    }
+
+    
 });
 
 module.exports = router;

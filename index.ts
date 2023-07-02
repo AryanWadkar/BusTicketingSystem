@@ -15,7 +15,8 @@ const conductor = require('./routes/conductorapisrest');
 const godadmin = require('./routes/godadmin');
 const usersocket = require('./routes/userapissocket');
 const conductorsocket=require('./routes/conductorapissocket');
-//const scheduler = require('./schedulers/clearscheduler');
+const serverState=require('./services/stateservices');
+const scheduler = require('./services/schedulerservices');
 import redis from "./config/redis";
 
 //Initialization and vars
@@ -23,7 +24,7 @@ InitMongoServer();
 
 redis.InitRedisServer();
 
-//scheduler.clearticket();
+scheduler;
 
 var corsOptions = {
     origin: "http://localhost:8081"
@@ -58,18 +59,17 @@ console.log(`Server is running on port ${PORT}`);
 const io = new Server(server, { /* options */ });
 
 io.use(globalservices.jwtVerifySocket).on("connection", (socket)=>{
-
-  socket.on('get/bus',(messageData)=>usersocket.busData(socket,io));
-  socket.on('post/book',(messageData)=>usersocket.bookTicket(socket,messageData));
-  socket.on('post/queue',(messageData)=>usersocket.joinQueue(socket,messageData));
-  socket.on('get/bookings',(messageData)=>usersocket.getBookings(socket));
-  socket.on('get/wallet',(messageData)=>usersocket.getWallet(socket,messageData));
-  socket.on('get/queue',(messageData)=>usersocket.getQueueEntry(socket));
-  socket.on('get/QR',(messageData)=>usersocket.getQR(socket,messageData));
-  
-  socket.on('get/busStatic',(messageData)=>conductorsocket.busDataConductor(socket));
-  socket.on('post/startSession',(messageData)=>conductorsocket.busSessionStart(socket,messageData));
-  socket.on('post/scanQR',(messageData)=>conductorsocket.busScanQR(socket,messageData));
+    socket.on('get/bus',(messageData)=>usersocket.busData(socket,io));
+    socket.on('post/book',(messageData)=>usersocket.bookTicket(socket,messageData));
+    socket.on('post/queue',(messageData)=>usersocket.joinQueue(socket,messageData));
+    socket.on('get/bookings',(messageData)=>usersocket.getBookings(socket));
+    socket.on('get/wallet',(messageData)=>usersocket.getWallet(socket,messageData));
+    socket.on('get/queue',(messageData)=>usersocket.getQueueEntry(socket));
+    socket.on('get/QR',(messageData)=>usersocket.getQR(socket,messageData));
+    
+    socket.on('get/busStatic',(messageData)=>conductorsocket.busDataConductor(socket));
+    socket.on('post/startSession',(messageData)=>conductorsocket.busSessionStart(socket,messageData));
+    socket.on('post/scanQR',(messageData)=>conductorsocket.busScanQR(socket,messageData));
 });
 
 module.exports=app;
