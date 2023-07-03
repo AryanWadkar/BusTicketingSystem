@@ -9,82 +9,90 @@ import { Response,Request } from 'express';
 const bcrypt = require("bcryptjs");
 const userService = require('../services/userservices');
 const otpModel = require('../models/otp');
+const stateService = require('../services/stateservices');
 
 async function resetTickets(busId:string|null):Promise<Array<Object>>{
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    if(busId)
-    {
-        try{
-            const ticketclr = await ticketModel.updateMany({
-                busId:busId
-            },{
-                email: "",
-                txnId:"",
-            },
-            { session } 
-            ).session(session);
-            const currbus = await busModel.findOne({_id:busId});
-            let busclr = await busModel.updateOne({
-                _id:busId
-            }, {
-                $set: {
-                  sessionStart: false,
-                  capacity: currbus.initialCapacity
-                }
-              },
-            { session }
-            ).session(session);    
-            await session.commitTransaction();
-
-            return [ticketclr,busclr];
-        }catch(err)
+    try{
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        if(busId)
         {
-            await session.abortTransaction();
-            return [String(err)];
-        }finally{
-            await session.endSession();
-        }
-
-        
-    }else{
-
-        try{        
-            const ticketclr = await ticketModel.updateMany({},{
-                email: "",
-                txnId:"",
-            },
-            { session }).session(session);
-            const allbus=await busModel.find({});
-            //TODO: Find a good aggregation pipeline
-            for(const bus of allbus)
+            try{
+                const ticketclr = await ticketModel.updateMany({
+                    busId:busId
+                },{
+                    email: "",
+                    txnId:"",
+                    verified:false
+                },
+                { session } 
+                ).session(session);
+                const currbus = await busModel.findOne({_id:busId});
+                let busclr = await busModel.updateOne({
+                    _id:busId
+                }, {
+                    $set: {
+                      sessionStart: false,
+                      capacity: currbus.initialCapacity
+                    }
+                  },
+                { session }
+                ).session(session);    
+                await session.commitTransaction();
+    
+                return [ticketclr,busclr];
+            }catch(err)
             {
-                await busModel.updateOne(
-                    {
-                        _id:bus._id
-                    },
-                    {
-                        $set: {
-                          sessionStart: false,
-                          capacity: bus.initialCapacity
-                        }
-                      },
-                    { session }
-                  );
+                await session.abortTransaction();
+                return [String(err)];
+            }finally{
+                await session.endSession();
             }
-
-
-            redisInstance.redisClient.flushAll();
-            await session.commitTransaction();
-            return [ticketclr];
-        }catch(err)
-        {
-            await session.abortTransaction();
-            return [String(err)];
-        }finally{
-            await session.endSession();
+    
+            
+        }else{
+    
+            try{        
+                const ticketclr = await ticketModel.updateMany({},{
+                    email: "",
+                    txnId:"",
+                    verified:false
+                },
+                { session }).session(session);
+                const allbus=await busModel.find({});
+                //TODO: Find a good aggregation pipeline
+                for(const bus of allbus)
+                {
+                    await busModel.updateOne(
+                        {
+                            _id:bus._id
+                        },
+                        {
+                            $set: {
+                              sessionStart: false,
+                              capacity: bus.initialCapacity
+                            }
+                          },
+                        { session }
+                      );
+                }
+    
+    
+                redisInstance.redisClient.flushAll();
+                await session.commitTransaction();
+                return [ticketclr];
+            }catch(err)
+            {
+                await session.abortTransaction();
+                return [String(err)];
+            }finally{
+                await session.endSession();
+            }
         }
+    }catch(err){
+        return [err];
     }
+
 }
 
 async function deleteQueue():Promise<object>{
@@ -99,60 +107,66 @@ async function deleteQueue():Promise<object>{
 }
 
 async function processQueue(){
-    let page=0;
-    const perPage = 10;
-    const totalReqs = await queueModel.countDocuments({
-        booking:{},txnId:""
-    });
-    console.log("total requests:"+totalReqs);
-    while((page*perPage)<totalReqs)
-    {
-        const queueobjs = await queueModel.find({booking:{},txnId:""}).sort( { initTime: 1 } ).skip(perPage * page).limit(perPage);
-        let noofjobs:number=queueobjs.length;
-        console.log("processing"+noofjobs+"docs rn in iteration "+page);
-        let currjobno:number=0;
-        while(currjobno<noofjobs)
+    try{
+        let page=0;
+        const perPage = 10;
+        const totalReqs = await queueModel.countDocuments({
+            booking:{},txnId:""
+        });
+        console.log("total requests:"+totalReqs);
+        while((page*perPage)<totalReqs)
         {
-            const queuereq=queueobjs[currjobno];
-            const preferences=queuereq['preferences'];
-            const email=queuereq['email'];
-            const docid=queuereq['id'];
-            const madeat=queuereq['initTime'];
-            let retry:boolean = true;
-            function bookingsuccess(bookingdata:{}){
-                retry=false;       
-                busService.sendQueueMail(email,{...bookingdata,'message':'Success'},{'madeat':madeat,'preferences':preferences});
-            }
-    
-            function bookingfaliure(errormessage:String){
-                if(errormessage=="Already Booked!" || errormessage=="Insufficient balance!" || errormessage=="No Match at end"){
-                    retry=false;
-                    busService.sendQueueMail(email,{'message':errormessage},{'madeat':madeat,'preferences':preferences});
-                }
-            }
-    
-            async function updatequeue(bookingdata:{},session:mongoose.mongo.ClientSession){
-                await queueModel.updateOne({_id:docid},{booking:bookingdata,txnId:bookingdata['txnId']}).session(session);
-            } 
-    
-            //Processing individual preferences;
-            let i:number=0;
-            let n:number=preferences.length;
-            while(retry && i<n)
+            const queueobjs = await queueModel.find({booking:{},txnId:""}).sort( { initTime: 1 } ).skip(perPage * page).limit(perPage);
+            let noofjobs:number=queueobjs.length;
+            console.log("processing"+noofjobs+"docs rn in iteration "+page);
+            let currjobno:number=0;
+            //Processing 1 request out of noofjobs
+            while(currjobno<noofjobs)
             {
-                let src=preferences[i]['source'];
-                let dest=preferences[i]['destination'];
-                let time=preferences[i]['startTime'];
-                await busService.bookTicket(email,src,dest,time,bookingfaliure,bookingsuccess,updatequeue);
-                i++;
+                const queuereq=queueobjs[currjobno];
+                const preferences=queuereq['preferences'];
+                const email=queuereq['email'];
+                const docid=queuereq['id'];
+                const madeat=queuereq['initTime'];
+                let retry:boolean = true;
+                function bookingsuccess(bookingdata:{}){
+                    retry=false;       
+                    busService.sendQueueMail(email,{...bookingdata,'message':'Success'},{'madeat':madeat,'preferences':preferences});
+                }
+        
+                function bookingfaliure(errormessage:String){
+                    if(errormessage=="Already Booked!" || errormessage=="Insufficient balance!" || errormessage=="No Match at end"){
+                        retry=false;
+                        busService.sendQueueMail(email,{'message':errormessage},{'madeat':madeat,'preferences':preferences});
+                    }
+                }
+        
+                async function updatequeue(bookingdata:{},session:mongoose.mongo.ClientSession){
+                    await queueModel.updateOne({_id:docid},{booking:bookingdata,txnId:bookingdata['txnId']}).session(session);
+                } 
+        
+                //Processing individual preferences;
+                let i:number=0;
+                let n:number=preferences.length;
+                while(retry && i<n)
+                {
+                    let src=preferences[i]['source'];
+                    let dest=preferences[i]['destination'];
+                    let time=preferences[i]['startTime'];
+                    await busService.bookTicket(email,src,dest,time,bookingfaliure,bookingsuccess,updatequeue);
+                    i++;
+                }
+        
+                if(retry && i==n) bookingfaliure("No Match at end");
+                currjobno++;
             }
-    
-            if(retry && i==n) bookingfaliure("No Match at end");
-            currjobno++;
+            page++;
         }
-        page++;
+    }catch(err){
+        console.log("error while processing queue:"+err);
+        console.log("suspending");
+        stateService.suspendOperations(err);
     }
-
         // queueobjs.forEach(async queuereq => {
             //THIS DOES NOT WAIT FOR CONTENTS WITHIN TO FINISH EXECUTING!!!!!!
         // });
@@ -237,7 +251,7 @@ async function resetPassSendOTP(email:string,access:string,res:Response)
         console.log('/AdminresetPassSendOTP',e);
             res.status(400).json({
                 "status":false,
-                "message":String(e),
+                "message":"Error retriving admin",
             });
         }
 }
@@ -250,7 +264,7 @@ async function resetPassVerifyOTP(email:string,unhashedOTP:string,res:Response)
         console.log('resetPassVerifyOTP',e);
             res.status(500).json({
                 "status":false,
-                "message":"Unkown Error",
+                "message":"Error Verifying OTP",
                 'data':String(e)
             });
     }

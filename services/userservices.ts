@@ -77,11 +77,13 @@ async function sendOTPMail (type:String,tosend:String,res:Response){
         expiresAt : Date.now() + 3600000
       });
 
-    await newOTPObj.save().then((data)=>{
-        transporter.sendMail(mailOptions, function(err, data) {
+
+      try{
+        await newOTPObj.save();
+        transporter.sendMail(mailOptions, async function(err, data) {
             if (err) {
               console.log("Error " + err);
-              OTPmodel.collection.deleteMany({email:tosend});
+              await OTPmodel.collection.deleteMany({email:tosend});
               res.status(500).json({
                 "status":false,
                 "message":"Error sending mail",
@@ -94,20 +96,21 @@ async function sendOTPMail (type:String,tosend:String,res:Response){
                   });
             }
           });
-    }).catch((err)=>{
+      }catch(err){
         console.log("Error saving" + err);
         res.status(500).json({
           "status":false,
           "message":"Error saving OTP",
           "data":err
         });
-    });
+      }
 }
 
 async function verifyOTP(res:Response,unhashedOTP:String,purpose:String,emailID:String,onsuccess?:()=>void){
-    await OTPmodel.find({
-        email:emailID
-    }).then(async (data)=>{
+    try{
+        const data = await OTPmodel.find({
+            email:emailID
+        });
         const expiry = data[data.length-1].expiresAt;
         const hashedotp = data[data.length-1].otp;
         if(expiry < Date.now())
@@ -126,34 +129,31 @@ async function verifyOTP(res:Response,unhashedOTP:String,purpose:String,emailID:
                     "email":emailID,
                     "purpose":purpose
                 };
-                jwt.sign(
-                    payload,
-                    process.env.JWT_KEY,
-                    async (err, tokenx) => {
-                        if(err)
-                        {
-                            res.status(500).json(
-                                {
-                                    "status":false,
-                                    "message":"Error signing JWT",
-                                    "data":err
-                                }
-                            );
-                        }else{
-                            if(onsuccess)
-                            {
-                                await onsuccess();
-                            }
-                            res.status(200).json({
-                                "status":true,
-                                "message":"OTP verified successfull!",
-                                "token":tokenx,
-                            });
-                        }
-
+                try{
+                    const tokenx = jwt.sign(
+                        payload,
+                        process.env.JWT_KEY,
+                        {expiresIn:600000}
+                    );
+                    if(onsuccess)
+                    {
+                        await onsuccess();
                     }
-                );
-
+                    res.status(200).json({
+                        "status":true,
+                        "message":"OTP verified successfull!",
+                        "token":tokenx,
+                    });
+                }catch(err)
+                {
+                    res.status(500).json(
+                        {
+                            "status":false,
+                            "message":"Error signing JWT",
+                            "data":err
+                        }
+                    );
+                }
             }else{
                 res.status(400).json({
                     "status":false,
@@ -161,13 +161,15 @@ async function verifyOTP(res:Response,unhashedOTP:String,purpose:String,emailID:
                 });
             }
         }
-    }).catch((error)=>{
+    }catch(err)
+    {
         res.status(404).json({
             "status":false,
             "message":"No corresponding OTP found, please request again!",
-            "data":String(error)
+            "data":String(err)
         });
-    });
+    }
+
 }
 
 function usernameToEmail(inval:string){

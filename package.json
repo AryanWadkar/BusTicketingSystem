@@ -18,8 +18,6 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-json-validator-middleware": "^3.0.1",
-    "express-validator": "^6.15.0",
-    "flat-cache": "^3.0.4",
     "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.3",

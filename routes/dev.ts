@@ -187,6 +187,7 @@ router.post("/deleteuser",validate({ body: validJson.usernameSchema }),async(req
             const data = await userModel.deleteOne({
                 email:email
             });
+            //TODO: maybe also clear txns
             res.status(200).json({
                 'status':true,
                 'data':data

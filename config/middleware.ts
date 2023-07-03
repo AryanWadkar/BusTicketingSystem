@@ -1,5 +1,5 @@
 
-import {ValidateFunction, ValidationError } from "express-json-validator-middleware";
+import {ValidationError } from "express-json-validator-middleware";
 import { Socket } from "socket.io";
 
 

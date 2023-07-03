@@ -8,8 +8,7 @@ const validJson = require("../config/schema");
 const globalService=require('../services/globalservices');
 const bcrypt = require("bcryptjs");
 
-router.post("/OTR",  validate({ body: validJson.OTRSchema }),   
-async (req: Request,res: Response)=>{
+router.post("/OTR",  validate({ body: validJson.OTRSchema }),async (req: Request,res: Response)=>{
     let data:object = await globalService.jwtVerifyHTTP(req,res,"godAdmin");
     if(data)
     {
@@ -71,8 +70,7 @@ async (req: Request,res: Response)=>{
 }
 );
 
-router.post("/revoke",  validate({ body: validJson.revokeSchema }),   
-async (req: Request,res: Response)=>{
+router.post("/revoke",  validate({ body: validJson.revokeSchema }),async (req: Request,res: Response)=>{
     let data:object = await globalService.jwtVerifyHTTP(req,res,"godAdmin");
     if(data)
     {

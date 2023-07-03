@@ -15,7 +15,6 @@ const conductor = require('./routes/conductorapisrest');
 const godadmin = require('./routes/godadmin');
 const usersocket = require('./routes/userapissocket');
 const conductorsocket=require('./routes/conductorapissocket');
-const serverState=require('./services/stateservices');
 const scheduler = require('./services/schedulerservices');
 import redis from "./config/redis";
 

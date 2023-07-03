@@ -33,43 +33,53 @@ async function jwtAuth(authKey:String,purpose:String): Promise<object>{
         }
     }catch(err)
     {
-
-        return {"status":false,"message":`"${err}"`};
+        return {"status":false,"message":"Error verifying token","data":`${err}`};
     }
-
-
 }
 
 async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<object | null>{
-    const authHeader = req.headers.authorization;
+    try{
+        const authHeader = req.headers.authorization;
         if (authHeader) {
-        //expected token format "Bearer eyjwnfkabs...."
-        const token = authHeader.split(' ')[1];
-        
-        const data = await new Promise<object>(async (resolve, reject) => {
-            const result = await jwtAuth(token,purpose);
-            if(result['status']===true)
+            //expected token format "Bearer eyjwnfkabs...."
+            const token = authHeader.split(' ')[1];
+            try{
+                const result = await jwtAuth(token,purpose);
+                if(result['status']===true)
+                {
+                    return result['data'];
+                }else{
+                    res.status(403).json({
+                        "status":false,
+                        "message":"Invalid Token!",
+                        "data":result['message']
+                    });
+                }
+            }catch(err)
             {
-                resolve(result['data']);
-            }else{
                 res.status(403).json({
                     "status":false,
                     "message":"Invalid Token!",
-                    "data":result['message']
+                    "data":err
                 });
             }
-          }); 
-          return data;
-    } else {
+
+        } else {
+            res.status(401).json({
+                "status":false,
+                "message":"Token not found!"
+            });
+            return null;
+        }
+    }catch(err)
+    {
         res.status(401).json({
             "status":false,
-            "message":"Token not found!"
+            "message":"Error retriving token",
+            "data":`${err}`
         });
-        return null;
     }
-    
 }
-
 
 async function jwtVerifySocket(socket: Socket,next:Function){
     console.log('Validating socket connection');
@@ -124,12 +134,13 @@ async function authenticateOps(socket: Socket,next:Function,route:string,access:
                 }else{
                     socket.emit(route,{
                         "status":false,
-                        "data":"Invalid JWT"
+                        "message":"Invalid JWT"
                     });
                 }
             }catch(e){
                 socket.emit(route,{
                     "status":false,
+                    "message":"Incorrect token",
                     "data":String(e)
                 });
             }
@@ -137,7 +148,7 @@ async function authenticateOps(socket: Socket,next:Function,route:string,access:
         }else{
             socket.emit(route,{
                 "status":false,
-                "data":"Invalid JWT"
+                "message":"Invalid JWT"
             });
         }
 
@@ -145,6 +156,7 @@ async function authenticateOps(socket: Socket,next:Function,route:string,access:
         console.log(route,e);
         socket.emit(route,{
             "status":false,
+            "message":"Error retriving token",
             "data":String(e)
         });
     }

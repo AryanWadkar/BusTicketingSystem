@@ -1,4 +1,4 @@
-
+import * as nodemailer from 'nodemailer';
 let overRideState:boolean=false;
 
 function correctState():string{
@@ -29,8 +29,40 @@ function getoverRideState(){
   return overRideState;
 }
 
+function suspendOperations(err){
+  overRideState=true;
+  let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.SMTP_MAIL,
+      pass:process.env.SMTP_APP_PASS
+    }
+});
+
+let mailOptions = {
+        from: process.env.SMTP_MAIL,
+        to: process.env.EMERGENCY_MAIL,
+        subject: 'Fatal flaw error',
+        html: `<p>There has been a fatal error on the BUTS server and it requires your attention</p>
+        <p>The server operation has been suspended due to the following reason</p>
+        <p>${String(err)}</p>
+        <p><strong>Team BUTS</strong>.</p>`
+  };
+
+  try{
+    transporter.sendMail(mailOptions, async function(err, data) {
+        if (err) {
+          console.log("Error " + err);
+        }
+      });
+  }catch(err){
+    console.log("Error saving" + err);
+  }
+}
+
 module.exports={
     getoverRideState,
     correctState,
-    toggleState
+    toggleState,
+    suspendOperations
 }
