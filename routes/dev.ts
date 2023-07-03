@@ -15,7 +15,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const globalService = require('../services/globalservices');
 const devService = require('../services/devservices');
-
 const stateservices=require('../services/stateservices');
 
 //ADD ROUTES
@@ -85,11 +84,6 @@ router.post("/addbus",validate({ body: validJson.addBusSchema }),async(req,res)=
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -118,11 +112,6 @@ router.post("/deletebus",validate({ body: validJson.busIdReqSchema }),async(req,
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -145,11 +134,6 @@ router.get("/deleteallbus",async(req,res)=>{
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -170,11 +154,6 @@ router.get("/deletequeue",async(req,res)=>{
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -199,11 +178,6 @@ router.post("/deleteuser",validate({ body: validJson.usernameSchema }),async(req
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -224,11 +198,6 @@ router.get("/deleteotps",async(req,res)=>{
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -251,14 +220,7 @@ router.get("/getallbus",async(req,res)=>{
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
-
-
 });
 
 router.post("/gettickets",validate({ body: validJson.busIdReqSchema }),async(req,res)=>{
@@ -281,13 +243,7 @@ router.post("/gettickets",validate({ body: validJson.busIdReqSchema }),async(req
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
-
 });
 
 router.get("/getqueue",async(req,res)=>{
@@ -307,11 +263,6 @@ router.get("/getqueue",async(req,res)=>{
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -325,13 +276,7 @@ router.get("/processqueue",async(req,res)=>{
         res.status(200).json({
             'status':true,
         });
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
-
 });
 
 
@@ -354,11 +299,6 @@ router.post("/resettickets",validate({ body: validJson.busIdReqSchema }),async(r
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -378,11 +318,6 @@ router.get("/resetalltickets",async(req,res)=>{
                 'data':err
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -411,11 +346,6 @@ router.post("/resetwallet",validate({ body: validJson.usernameSchema }),async(re
                     'data':err
                 });
             }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid Token!"
-        });
     }
 });
 
@@ -526,11 +456,6 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
         let newpass:string=req.body["newpass"];
         let email:string = data["email"];
         await devService.resetPass(email,"Dev",newpass,res);
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid token"
-        });
     }
 });
 
@@ -550,14 +475,7 @@ router.get("/toggleSuspension",async(req:Request,res:Response)=>{
                 "message":String(e)
             });
         }
-    }else{
-        res.status(401).json({
-            "status":false,
-            "message":"Invalid token"
-        });
     }
-
-    
 });
 
 module.exports = router;

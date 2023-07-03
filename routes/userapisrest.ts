@@ -12,6 +12,14 @@ const { validate } = new Validator({});
 const userService = require('../services/userservices');
 const cacheService = require('../services/cacheservices');
 const serverState=require('../services/stateservices');
+const UserModel = require("../models/user");
+const TransactionModel = require("../models/transaction");
+const TicketModel = require('../models/ticket');
+const BusModel = require("../models/bus");
+const BusService=require('../services/busservices');
+const QueueModel=require('../models/queue');
+const cacheservices =require('../services/cacheservices');
+
 
 router.post("/usercheck", validate({ body: validJson.usernameSchema }),async (req: Request,res: Response)=>{
     if(serverState.getoverRideState())
@@ -383,7 +391,7 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
   }
 });
 
-router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
+router.patch("/resetPassVerifyOTP",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
     
     if(serverState.getoverRideState())
     {
@@ -449,5 +457,361 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
         }
     }
 });
+
+router.get("/busdata",async(req:Request,res:Response)=>{
+
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else{
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders(); // flush the headers to establish SSE with client
+            try{
+                const buses = await BusModel.find();
+                const data = JSON.stringify({ status:true,data:buses });
+                res.write(`data: ${data}\n\n`);
+                const changeStream = BusModel.watch({fullDocument: 'updateLookup' });
+                changeStream.on('change', async(change) => {
+                    const updatedbus = change.fullDocument;
+                    try{
+                        const data = JSON.stringify({ status:true,data:updatedbus });
+                        res.write(`data: ${data}\n\n`);
+                    }catch(err)
+                    {
+                        console.log("BUS UPDATE ERROR",err);
+                        res.status(503).json({
+                            "status":false,
+                            'message':"Error retriving bus updates"
+                        });
+                        res.end();
+                    }
+        
+                  });
+            }catch(err)
+            {
+                res.status(503).json({
+                    "status":false,
+                    'message':"Error retriving bus data"
+                });
+                res.end();
+            }
+            // If client closes connection, stop sending events
+            res.on('close', () => {
+                console.log('client dropped me');
+                res.end();
+            });
+        }
+    }
+
+});
+
+router.post("/wallet",validate({ body: validJson.pageReqSchema }),async(req:Request,res:Response)=>{
+    const currState=serverState.correctState();
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else if(currState==="Processing")
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server is processing queues"
+        });
+    }else{
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            try{
+                const email = jwtData['email'];
+                const page=datain['page']-1;
+                const perPage = 5;
+                const user = await UserModel.findOne({
+                    email:email
+                });
+                const transactionsTotal = await TransactionModel.countDocuments({
+                    email:email
+                });
+                const transactions = await TransactionModel.find({
+                    email:email
+                }).skip(perPage * page).limit(perPage);
+        
+                const walletenc = user.wallet;
+                const amt = userService.decryptAmount(walletenc);
+                res.status(200).json({
+                "status":true,
+                "wallet":amt,
+                "totaltxns":transactionsTotal,
+                "transactions":transactions});
+            }catch(err)
+            {
+                res.status(503).json({
+                    "status":false,
+                    "message":"Error getting wallet"
+                });
+            }
+        }
+    }
+});
+
+router.get("/bookings",async(req:Request,res:Response)=>{
+    const currState=serverState.correctState();
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else if(currState==="Processing")
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server is processing queues"
+        });
+    }else{
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            try{
+                const email = jwtData['email'];
+                const tickets = await TicketModel.find({
+                    email:email
+                });
+                res.status(200).json({
+                    "status":true,
+                    "data":tickets
+                });
+            }catch(err)
+            {
+                res.status(503).json({
+                    "status":false,
+                    "message":"Error retriving bookings"
+                }); 
+            }
+        }
+    }
+});
+
+router.post("/bookticket",validate({ body: validJson.ticketReqSchema }),async(req:Request,res:Response)=>{
+    const currState=serverState.correctState();
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else if(currState==="Ticketing")
+    {       
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            try{
+                const email = jwtData['email'];
+                let src=datain['source'];
+                let dest=datain['destination'];
+                let time=datain['startTime'];
+                const reqtime=new Date(Date.now()).toISOString();
+                const bookingreqdetail={'reqtime':reqtime,'source':src,'dest':dest,'time':time};
+                function bookingsuccess(bookingdata:{}){
+                    res.status(200).json({
+                        "status":true,
+                        "data":bookingdata
+                    });
+                    BusService.sendTicketMail(email,{...bookingdata,'message':'Success'},bookingreqdetail);
+                }
+        
+                function bookingfaliure(errormessage:String){
+                    res.status(500).json({
+                        "status":false,
+                        "message":errormessage
+                    });
+                    BusService.sendTicketMail(email,{'message':errormessage},bookingreqdetail);
+                }
+        
+                await BusService.bookTicket(email,src,dest,time,bookingfaliure,bookingsuccess);
+            }catch(err)
+            {
+                res.status(200).json({
+                    "status":false,
+                    "message":"Error booking requested tickets"
+                });  
+            }
+        }
+    }else{
+        res.status(503).json({
+            "status":false,
+            "message":"Ticketing is allowed between 1:00 PM and 10:30 PM"
+        });
+    }
+});
+
+router.post("/queue",validate({ body: validJson.queueReqSchema }),async(req:Request,res:Response)=>{
+    const currState=serverState.correctState();
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else if(currState==="Queueing")
+    {
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            try{
+                const email=jwtData['email'];
+                const requestedorder = datain['preferences'];
+                const queueobjs=await QueueModel.find({
+                    email:email
+                });
+                if(queueobjs.length>0)
+                {
+                    res.status(400).json({
+                        "status":false,
+                        "data":"Already in queue!"
+                    });
+                }else{
+                    const newQueueobj = QueueModel({
+                        email:email,
+                        preferences:requestedorder,
+                        initTime:Date.now()
+                    });
+                    const data = await newQueueobj.save();
+                    res.status(200).json({
+                        "status":true,
+                        "data":"Added to queue successfully",
+                        "qid":data
+                    });
+                }
+            }catch(err)
+            {
+                res.status(400).json({
+                    "status":false,
+                    "message":"Error adding to queue"
+                });                   
+            }
+        }
+    }else{
+        res.status(503).json({
+            "status":false,
+            "message":"Queueing is allowed between 10:00 AM and 1:00 PM"
+        });
+    }
+});
+
+router.get("/queueentry",async(req:Request,res:Response)=>{
+    const currState=serverState.correctState();
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else if(currState==="Queueing" || currState==="Ticketing")
+    {
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            try{
+                const email=jwtData['email'];
+                const queueobjs=await QueueModel.find({
+                    email:email
+                });
+                res.status(200).json({
+                    "status":true,
+                    "data":queueobjs
+                });
+            }catch(err)
+            {
+                res.status(503).json({
+                    "status":false,
+                    "message":"Error obtaining queue entry"
+                });
+            }
+        }
+    }else{
+        res.status(503).json({
+            "status":false,
+            "message":"Not allowed right now"
+        });
+    }
+});
+
+router.post("/QR",validate({ body: validJson.busIdReqSchema }),async(req:Request,res:Response)=>{
+    const currState=serverState.correctState();
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else if(currState==="Ticketing")
+    {
+        let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
+        const datain=req.body;
+        if(jwtData)
+        {
+            try{
+                const email=jwtData['email'];
+                const sessionBusId=datain['busId'];
+                const tickets=await TicketModel.findOne(
+                    {
+                        busId:sessionBusId,
+                        email:email
+                    }
+                );
+                if(tickets)
+                {
+                    let resx = await cacheservices.redisGetCode(sessionBusId);
+                    if(!res['status'])
+                    {
+                        res.status(400).json({
+                            "status":false,
+                            "message":resx['message']});
+                    }else{
+                        res.status(200).json({
+                            "status":true,
+                            "message":resx['message']
+                        });
+                    }
+                }else{
+                    res.status(400).json({
+                        "status":false,
+                        "message":"No ticket found!"
+                    });
+                }
+            }catch(err)
+            {
+                console.log(err);
+                res.status(503).json({
+                    "status":false,
+                    "message":"Error obtaining QR"
+                });  
+            }
+        }
+    }else{
+        res.status(503).json({
+            "status":false,
+            "message":"Not allowed right now"
+        });
+    }
+});
+
 
 module.exports = router;

@@ -37,7 +37,7 @@ async function jwtAuth(authKey:String,purpose:String): Promise<object>{
     }
 }
 
-async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<object | null>{
+async function jwtVerifyHTTP(req:Request,res:Response,purpose:string,access:string|null):Promise<object | null>{
     try{
         const authHeader = req.headers.authorization;
         if (authHeader) {
@@ -47,6 +47,20 @@ async function jwtVerifyHTTP(req:Request,res:Response,purpose:String):Promise<ob
                 const result = await jwtAuth(token,purpose);
                 if(result['status']===true)
                 {
+                    if(access)
+                    {
+                        const data=result['data'];
+                        if(data && data["access"]===access)
+                        {
+                            return data;
+                        }else{
+                            res.status(403).json({
+                                "status":false,
+                                "message":"Invalid Token!",
+                                "data":result['message']
+                            });
+                        }
+                    }
                     return result['data'];
                 }else{
                     res.status(403).json({

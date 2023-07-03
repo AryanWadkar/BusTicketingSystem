@@ -2,6 +2,7 @@ import * as nodemailer from 'nodemailer';
 let overRideState:boolean=false;
 
 function correctState():string{
+  return "Ticketing";
     const currdatetime= new Date();
     const hours=currdatetime.getHours();
     const minutes = currdatetime.getMinutes();

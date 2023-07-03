@@ -10,6 +10,10 @@ const jwt = require("jsonwebtoken");
 const globalService = require('../services/globalservices');
 const devService = require('../services/devservices');
 const serverState=require('../services/stateservices');
+const busModel = require("../models/bus");
+const cacheservices =require('../services/cacheservices');
+const ticketModel = require('../models/ticket');
+
 
 router.post("/login",  validate({ body: validJson.loginSchema }),async (req: Request,res: Response)=>{
     
@@ -170,6 +174,193 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
                 "status":false,
                 "message":"Invalid token"
             });
+        }
+    }
+});
+
+router.get("/busdata",async(req:Request,res:Response)=>{
+    
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else{
+        let data = await globalService.jwtVerifyHTTP(req,res,'ops',"Conductor");
+        if(data)
+        {
+            const buses = await busModel.find();
+            res.status(200).json({
+                "status":true,
+                'data':buses
+            });
+    
+        }
+    }
+});
+
+router.post("/startsession",validate({ body: validJson.busIdReqSchema }),async(req:Request,res:Response)=>{
+    
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else{
+        let data = await globalService.jwtVerifyHTTP(req,res,'ops',"Conductor");
+        const datain=req.body;
+        if(data)
+        {
+            try{
+                let busid=datain['busId'];
+                const busObj = await busModel.findOne(
+                    {
+                        "_id":busid,
+                        "sessionStart":false
+                    }
+                );
+                if(!busObj)
+                {
+                    res.status(401).json({
+                        "status":false,
+                        "message":"Bus not found"
+                    });
+                }else{
+                    const bustime = new Date(busObj.startTime);
+                    const currtime= new Date();
+                    const bushrs = bustime.getHours();
+                    const busmins = bustime.getMinutes();
+                    if(bushrs>=currtime.getHours() && busmins>=currtime.getMinutes())
+                    {
+                        const busObj = await busModel.updateOne(
+                            {
+                                "_id":busid,
+                            },{
+                                "sessionStart":true
+                            }
+                        );
+                        const resx = await cacheservices.redisOperateSession(busid);
+                        if(!res['status'])
+                        {
+                            res.status(401).json({
+                                "status":false,
+                                "message":resx['message']
+                            });
+                        }else{
+                            const tickets=await ticketModel.find(
+                                {
+                                    busId:busid,
+                                    txnId: { $ne: "" },
+                                    email: {$ne : ""}
+                                }
+                            );
+                            
+                            res.status(200).json({
+                                "status":true,
+                                "data":tickets
+                            });
+                        }
+                    }else{
+                        res.status(401).json({
+                            "status":false,
+                            "message":'Cannot start bus before bus start time'
+                        });
+                    }
+
+                }
+            }catch(err)
+            {
+                res.status(503).json({
+                    "status":false,
+                    "message":'Error starting session'
+                });
+            }
+    
+        }
+    }
+});
+
+router.post("/scanQR",validate({ body: validJson.scanQRSchema }),async(req:Request,res:Response)=>{
+    
+    if(serverState.getoverRideState())
+    {
+        res.status(503).json({
+            "status":false,
+            "message":"Server under maintainence",
+        });
+    }else{
+        let data = await globalService.jwtVerifyHTTP(req,res,'ops',"Conductor");
+        const datain=req.body;
+        if(data)
+        {
+            try{
+                let sessionBusId=datain['sessionBusId'];
+                let ticketBusId=datain['ticketBusId'];
+                let email=datain['email'];
+                let code=datain['code'];
+    
+                if(sessionBusId!==ticketBusId)
+                {
+                    res.status(401).json({
+                        "status":false,
+                        "message":"Bus Not matching!"});
+                }else{
+    
+                    const ticket = await ticketModel.findOne({
+                        busId:sessionBusId,
+                        email:email,
+                        verified:false
+                    });
+
+                    if(!ticket)
+                    {
+                        res.status(401).json({
+                            "status":false,
+                            "message":"Ticket not found for this user!"
+                        });
+                    }else{
+                        let resz = await cacheservices.redisGetCode(sessionBusId);
+                        if(!resz['status'])
+                        {
+                            res.status(401).json({
+                                "status":false,
+                                "message":res['message']});
+                        }else if(resz['message']!="Set req" && code!=resz['message'])
+                        {
+                            res.status(401).json({
+                                "status":false,
+                                "message":"Outdated code found, request refresh!"});
+                        }
+                        else{ 
+                            const resx= await cacheservices.redisOperateSession(sessionBusId);
+                            console.log(resx);
+                            if(resx['status'])
+                            {
+                                await ticketModel.updateOne({_id:ticket._id},{verified:true});
+                                res.status(200).json({
+                                    "status":true,
+                                    "message":"verified successfully"
+                                });
+                            }else{
+                                res.status(401).json({
+                                    "status":false,
+                                    "message":resx['message']
+                                });     
+                            }
+
+                        }
+                    }
+                }
+            }catch(err)
+            {
+                res.status(401).json({
+                    "status":false,
+                    "message":"Error verifying QR"
+                });
+            }
+    
         }
     }
 });

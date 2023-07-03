@@ -2,7 +2,6 @@
 import {ValidationError } from "express-json-validator-middleware";
 import { Socket } from "socket.io";
 
-
 function validationErrorMiddleware(error, request, response, next) {
 	if (response.headersSent) {
 		return next(error);

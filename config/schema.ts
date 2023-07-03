@@ -136,6 +136,89 @@ const revokeSchema: AllowedSchema  = {
   },
 };
 
+const ticketReqSchema: AllowedSchema = {
+  type: "object",
+  required: ["source","destination","startTime"],
+  properties: {
+    source: {
+      type: "string",
+      minLength: 1,
+    },
+    destination: {
+        type: "string",
+        minLength: 1,
+    },
+    startTime: {
+        type: "string",
+        pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}Z$"
+    },
+  },
+};
+
+const queueReqSchema: AllowedSchema = {
+    type: "object",
+    required: ["preferences"],
+    properties: {
+      preferences: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          properties: {
+            source: {
+              type: "string",
+              minLength: 1,
+            },
+            destination: {
+              type: "string",
+              minLength: 1,
+            },
+            startTime: {
+              type: "string",
+              pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}Z$"
+            }
+          },
+          "required": ["source", "destination", "startTime"]
+        },
+      }
+    },
+};
+
+const scanQRSchema: AllowedSchema = {
+    type: "object",
+    required: ["code", "email", "ticketBusId", "sessionBusId"],
+    properties: {
+      "code": {
+        type: "number",
+        "minimum": 100000,
+        "maximum": 999999
+      },
+      email: {
+        "type": "string",
+        "minLength": 1
+      },
+      ticketBusId: {
+        "type": "string",
+        "minLength": 12
+      },
+      sessionBusId: {
+        "type": "string",
+        "minLength": 12
+      }
+    }
+};
+
+const pageReqSchema: AllowedSchema = {
+  type: 'object',
+  required: ['page'],
+  properties: {
+      page: {
+      type: 'number',
+      "minimum": 1,
+    },
+  }
+};
+
 module.exports={
     usernameSchema,
     username_opt_Schema,
@@ -145,5 +228,9 @@ module.exports={
     addBusSchema,
     busIdReqSchema,
     OTRSchema,
-    revokeSchema
+    revokeSchema,
+    ticketReqSchema,
+    queueReqSchema,
+    scanQRSchema,
+    pageReqSchema
 }
