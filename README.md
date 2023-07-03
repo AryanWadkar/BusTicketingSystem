@@ -16,7 +16,7 @@ The system facilitates:
 
 ## High Level Design Diagrams
 The high level design of the system as of now is
-![Untitled Diagram (2) drawio](https://github.com/AryanWadkar/BusTicketingSystem/assets/85237273/4a763a7c-8db8-43be-b10e-6c7a8aeb4704)\
+![Untitled Diagram (2) drawio](https://github.com/AryanWadkar/BusTicketingSystem/assets/85237273/4a763a7c-8db8-43be-b10e-6c7a8aeb4704)
 
 This project is a work in progres, final proposed high level system design is as follows:
 ![Untitled Diagram drawio (3)](https://github.com/AryanWadkar/BusTicketingSystem/assets/85237273/dface952-2561-4c34-bec5-ad0795a400cb)
