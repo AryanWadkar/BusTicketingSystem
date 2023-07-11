@@ -458,6 +458,8 @@ router.patch("/resetPassVerifyOTP",validate({ body: validJson.resetPassSchema })
     }
 });
 
+//TODO : Restore time bound ops
+
 router.get("/busdata",async(req:Request,res:Response)=>{
 
     if(serverState.getoverRideState())
@@ -523,7 +525,7 @@ router.post("/wallet",validate({ body: validJson.pageReqSchema }),async(req:Requ
             "status":false,
             "message":"Server under maintainence",
         });
-    }else if(currState==="Processing")
+    }else if(false/*currState==="Processing"*/)
     {
         res.status(503).json({
             "status":false,
@@ -574,7 +576,7 @@ router.get("/bookings",async(req:Request,res:Response)=>{
             "status":false,
             "message":"Server under maintainence",
         });
-    }else if(currState==="Processing")
+    }else if(false/*currState==="Processing"*/)
     {
         res.status(503).json({
             "status":false,
@@ -613,7 +615,7 @@ router.post("/bookticket",validate({ body: validJson.ticketReqSchema }),async(re
             "status":false,
             "message":"Server under maintainence",
         });
-    }else if(currState==="Ticketing")
+    }else if(true/*currState==="Ticketing"*/)
     {       
         let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
         const datain=req.body;
@@ -667,7 +669,7 @@ router.post("/queue",validate({ body: validJson.queueReqSchema }),async(req:Requ
             "status":false,
             "message":"Server under maintainence",
         });
-    }else if(currState==="Queueing")
+    }else if(true/*currState==="Queueing"*/)
     {
         let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
         const datain=req.body;
@@ -722,7 +724,7 @@ router.get("/queueentry",async(req:Request,res:Response)=>{
             "status":false,
             "message":"Server under maintainence",
         });
-    }else if(currState==="Queueing" || currState==="Ticketing")
+    }else if(true/*currState==="Queueing" || currState==="Ticketing"*/)
     {
         let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
         const datain=req.body;
@@ -761,7 +763,7 @@ router.post("/QR",validate({ body: validJson.busIdReqSchema }),async(req:Request
             "status":false,
             "message":"Server under maintainence",
         });
-    }else if(currState==="Ticketing")
+    }else if(true/*currState==="Ticketing"*/)
     {
         let jwtData:object = await globalService.jwtVerifyHTTP(req,res,"ops","User");
         const datain=req.body;

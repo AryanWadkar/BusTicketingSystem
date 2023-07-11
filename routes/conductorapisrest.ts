@@ -232,7 +232,7 @@ router.post("/startsession",validate({ body: validJson.busIdReqSchema }),async(r
                     const currtime= new Date();
                     const bushrs = bustime.getHours();
                     const busmins = bustime.getMinutes();
-                    if(bushrs>=currtime.getHours() && busmins>=currtime.getMinutes())
+                    if(true/*bushrs>=currtime.getHours() && busmins>=currtime.getMinutes()*/) //TODO:Restore
                     {
                         const busObj = await busModel.updateOne(
                             {
