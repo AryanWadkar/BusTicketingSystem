@@ -321,7 +321,7 @@ async function sendTicketMail(tosend:String,processresult:object,orignalrequestd
 
 function getLegibleTime(datestr:string):string{
     const date= new Date(datestr);
-    const finaldate:string=date.toLocaleTimeString('en-US', { hour12: true });
+    const finaldate:string=date.toLocaleTimeString('en-US', { hour12: true,timeZone: 'Asia/Kolkata' });
     return finaldate;
 }
 
@@ -335,6 +335,7 @@ function getLegibleDate(datestr:string):string{
         minute: 'numeric',
         second: 'numeric',
         hour12: true,
+        timeZone: 'Asia/Kolkata'
       });
     return finaldate;
 }
