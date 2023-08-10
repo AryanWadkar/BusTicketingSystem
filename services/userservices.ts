@@ -47,11 +47,11 @@ async function sendOTPMail (type:String,tosend:String,res:Response){
             from: process.env.SMTP_MAIL,
             to: tosend,
             subject: 'Verify Email',
-            html: `<p>Hello, to verify your email for BUTS, please enter the following <strong>OTP</strong> in the app:</p>
+            html: `<p>Dear user, to verify your email for BUTS, please enter the following <strong>OTP</strong> in the app:</p>
             <p><strong><span style="font-size: 20px;">${otp}</span></strong></p>
             <p>Note : This OTP <u>expires</u> in <u>1 hour</u>.</p>
             <p>Cheers!</p>
-            <p><strong>Team BUTS</strong>.</p>`
+            <p><strong>Team UniGo.</strong></p>`
           };
     }else if (type==="reset")
     {
@@ -59,11 +59,11 @@ async function sendOTPMail (type:String,tosend:String,res:Response){
             from: process.env.SMTP_MAIL,
             to: tosend,
             subject: 'Password Reset',
-            html: `<p>Hello,</p>
+            html: `<p>Dear user,</p>
             <p>A <strong>password reset</strong> has been requested on your email, please authenticate this request by entering the following&nbsp;<strong>OTP</strong> into the app. If this request was not initiated by you please ignore this mail.<br><br><span style="font-size: 20px;"><strong>${otp}</strong></span></p>
             <p>Note: This OTP is only <u>valid for 1 hour</u>.</p>
             <p>Regards,</p>
-            <p>Team BUTS.</p>`
+            <p>Team UniGo.</p>`
           };
     }
 

@@ -169,11 +169,6 @@ router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),asyn
                 });
             }
     
-        }else{
-            res.status(401).json({
-                "status":false,
-                "message":"Invalid token"
-            });
         }
     }
 });

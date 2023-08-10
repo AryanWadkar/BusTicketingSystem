@@ -209,7 +209,7 @@ async function sendQueueMail(tosend:String,processresult:object,orignalrequestda
            i++;
        }
     
-       const headertext=`<p>Hello,</p>
+       const headertext=`<p>Dear user,</p>
        <p>This mail is in regards to the ticket booking queue request made on : ${madeat}, with the following preference list:</p>
        <table style="width: 100%;">
            <tbody>
@@ -235,7 +235,7 @@ async function sendQueueMail(tosend:String,processresult:object,orignalrequestda
             to: tosend,
             subject: 'Queue Booking Result',
             html: `${headertext}${mailbody}<p>Regards,</p>
-            <p>Team BUTS.</p>`
+            <p>Team UniGo.</p>`
           };
             
         transporter.sendMail(mailOptions, function(err, data) {});
@@ -268,7 +268,7 @@ async function sendTicketMail(tosend:String,processresult:object,orignalrequestd
         <p><strong>The system detected a prexisting booking in your name in the same bus, you are allowed to book only 1 seat per bus.</strong></p>`;
         break;
         case "No Valid Bus Found":mailbody=`<p>We regret to inform you that your ticket booking request was not fulfilled due to the following reason:</p>
-        <p><strong>The Bus you requested to book a ticket in has either departed or is not running today, or isnt in our catalouge</strong></p>`;
+        <p><strong>The Bus you requested to book a ticket in has either departed or is not running today, or isnt in our catalog</strong></p>`;
         break;
         case "Success":mailbody=`    
         <p>Your booking request has been successfully executed, the ticket details are as follows:.</p>
@@ -281,7 +281,7 @@ async function sendTicketMail(tosend:String,processresult:object,orignalrequestd
         <p><strong>${processresult['message']}</strong></p>`;
        }
     
-       const headertext=`<p>Hello,</p>
+       const headertext=`<p>Dear user,</p>
        <p>This mail is in regards to the ticket booking request made by you on : ${getLegibleDate(orignalrequestdata['reqtime'])}, for the following bus:</p>
        <table style="width: 100%;">
            <tbody>
@@ -308,7 +308,7 @@ async function sendTicketMail(tosend:String,processresult:object,orignalrequestd
             to: tosend,
             subject: 'Ticket Booking Result',
             html: `${headertext}${mailbody}<p>Regards,</p>
-            <p>Team BUTS.</p>`
+            <p>Team UniGO.</p>`
           };
             
         transporter.sendMail(mailOptions, function(err, data) {});

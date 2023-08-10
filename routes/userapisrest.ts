@@ -391,7 +391,7 @@ router.post("/resetPassVerifyOTP",validate({ body: validJson.username_opt_Schema
   }
 });
 
-router.patch("/resetPassVerifyOTP",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
+router.patch("/resetPassword",validate({ body: validJson.resetPassSchema }),async(req:Request,res:Response)=>{
     
     if(serverState.getoverRideState())
     {
@@ -449,11 +449,6 @@ router.patch("/resetPassVerifyOTP",validate({ body: validJson.resetPassSchema })
                         'data':String(e)
                     });
                 }
-        }else{
-            res.status(401).json({
-                "status":false,
-                "message":"Invalid token"
-            });
         }
     }
 });
