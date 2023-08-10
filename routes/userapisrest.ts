@@ -543,7 +543,7 @@ router.post("/wallet",validate({ body: validJson.pageReqSchema }),async(req:Requ
                 });
                 const transactions = await TransactionModel.find({
                     email:email
-                }).skip(perPage * page).limit(perPage);
+                }).sort({date:-1}).skip(perPage * page).limit(perPage);
         
                 const walletenc = user.wallet;
                 const amt = userService.decryptAmount(walletenc);
